@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../apiService';
 import { queryKeys } from './queryKeys';
-import type { CreateTransportadoraRequest } from '../../types';
+import type { CreateTransportadoraRequest, UpdateTransportadoraRequest } from '../../types';
 
 export function useTransportadoras() {
   return useQuery({
@@ -22,6 +22,27 @@ export function useCreateTransportadora() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTransportadoraRequest) => api.createTransportadora(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transportadoras.all });
+    },
+  });
+}
+
+export function useUpdateTransportadora() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTransportadoraRequest }) =>
+      api.updateTransportadora(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transportadoras.all });
+    },
+  });
+}
+
+export function useDeleteTransportadora() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteTransportadora(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.transportadoras.all });
     },
