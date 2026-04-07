@@ -25,3 +25,7 @@ class RemetenteRepository(ABC):
     @abstractmethod
     def delete(self, id: UUID) -> bool:
         ...
+
+    @abstractmethod
+    def find_by_cnpj(self, cnpj: str) -> Optional[Remetente]:
+        ...

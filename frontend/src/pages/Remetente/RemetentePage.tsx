@@ -1,26 +1,93 @@
-import { useRemetentes } from '@/api/hooks/useRemetentes';
+import { useState } from 'react';
+import { useRemetentes, useCreateRemetente, useUpdateRemetente, useDeleteRemetente } from '@/api/hooks/useRemetentes';
+import { RemetenteTable } from './components/RemetenteTable';
+import { RemetenteForm } from './components/RemetenteForm';
+import type { Remetente, CreateRemetenteRequest, UpdateRemetenteRequest } from '@/types';
+
+type FormMode = { kind: 'closed' } | { kind: 'create' } | { kind: 'edit'; remetente: Remetente };
 
 export function RemetentePage() {
   const { data: items, isLoading, error } = useRemetentes();
+  const createMutation = useCreateRemetente();
+  const updateMutation = useUpdateRemetente();
+  const deleteMutation = useDeleteRemetente();
+  const [formMode, setFormMode] = useState<FormMode>({ kind: 'closed' });
+  const [formError, setFormError] = useState<string | null>(null);
 
   if (isLoading) return <div className="text-gray-500">Loading...</div>;
   if (error) return <div className="text-red-500">Error loading remetentes</div>;
 
+  function handleCreate(data: CreateRemetenteRequest | UpdateRemetenteRequest) {
+    setFormError(null);
+    createMutation.mutate(data as CreateRemetenteRequest, {
+      onSuccess: () => setFormMode({ kind: 'closed' }),
+      onError: (err) => {
+        const msg = (err as Record<string, unknown>).response
+          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao criar remetente')
+          : 'Erro ao criar remetente';
+        setFormError(String(msg));
+      },
+    });
+  }
+
+  function handleUpdate(data: CreateRemetenteRequest | UpdateRemetenteRequest) {
+    if (formMode.kind !== 'edit') return;
+    setFormError(null);
+    updateMutation.mutate({ id: formMode.remetente.id, data: data as UpdateRemetenteRequest }, {
+      onSuccess: () => setFormMode({ kind: 'closed' }),
+      onError: (err) => {
+        const msg = (err as Record<string, unknown>).response
+          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao atualizar remetente')
+          : 'Erro ao atualizar remetente';
+        setFormError(String(msg));
+      },
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (!window.confirm('Excluir este remetente?')) return;
+    deleteMutation.mutate(id);
+  }
+
+  function handleEdit(remetente: Remetente) {
+    setFormError(null);
+    setFormMode({ kind: 'edit', remetente });
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Remetentes</h1>
-      {items && items.length > 0 ? (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.id} className="bg-white p-4 rounded-lg shadow">
-              <span className="font-medium">{item.name}</span>
-              <span className="ml-2 text-sm text-gray-500">{item.status}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500">No remetentes yet.</p>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">Remetentes</h1>
+        {formMode.kind === 'closed' && (
+          <button
+            onClick={() => { setFormError(null); setFormMode({ kind: 'create' }); }}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            + Novo Remetente
+          </button>
+        )}
+      </div>
+
+      {formMode.kind !== 'closed' && (
+        <div className="bg-white p-6 rounded-lg shadow mb-6">
+          <h2 className="text-lg font-semibold mb-4">
+            {formMode.kind === 'create' ? 'Novo Remetente' : 'Editar Remetente'}
+          </h2>
+          <RemetenteForm
+            onSubmit={formMode.kind === 'create' ? handleCreate : handleUpdate}
+            onCancel={() => setFormMode({ kind: 'closed' })}
+            initialData={formMode.kind === 'edit' ? formMode.remetente : undefined}
+            isEdit={formMode.kind === 'edit'}
+            error={formError}
+          />
+        </div>
       )}
+
+      <RemetenteTable
+        remetentes={items ?? []}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
