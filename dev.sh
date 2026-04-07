@@ -17,7 +17,7 @@ BACKEND_PORT="${PORT:-9000}"
 if [[ -n "${CORS_ORIGINS:-}" ]]; then
   FRONTEND_PORT="$(echo "$CORS_ORIGINS" | sed 's|.*:\([0-9]*\)$|\1|')"
 else
-  FRONTEND_PORT=5174
+  FRONTEND_PORT=12173
 fi
 
 cleanup() {
