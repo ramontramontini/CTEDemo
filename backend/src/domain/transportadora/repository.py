@@ -19,6 +19,10 @@ class TransportadoraRepository(ABC):
         ...
 
     @abstractmethod
+    def find_by_cnpj(self, cnpj: str) -> Optional[Transportadora]:
+        ...
+
+    @abstractmethod
     def find_all(self) -> list[Transportadora]:
         ...
 
