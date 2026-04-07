@@ -29,18 +29,44 @@ export interface ValidationError {
 
 export interface Remetente {
   id: string;
-  name: string;
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  ie: string;
+  uf: string;
+  cidade: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cep: string;
   status: string;
   created_at: string;
   updated_at: string | null;
 }
 
 export interface CreateRemetenteRequest {
-  name: string;
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  ie?: string;
+  uf: string;
+  cidade: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cep: string;
 }
 
 export interface UpdateRemetenteRequest {
-  name?: string;
+  razao_social?: string;
+  nome_fantasia?: string;
+  ie?: string;
+  uf?: string;
+  cidade?: string;
+  logradouro?: string;
+  numero?: string;
+  bairro?: string;
+  cep?: string;
 }
 
 export interface Destinatario {

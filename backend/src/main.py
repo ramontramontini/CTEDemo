@@ -57,6 +57,15 @@ def create_app() -> FastAPI:
 
     register_error_handlers(app)
 
+    @app.on_event("startup")
+    async def seed_memory_data():
+        from src.config.settings import settings
+        if settings.data_mode == "memory":
+            from src.infrastructure.database.repositories.provider import get_repository_provider
+            provider = get_repository_provider()
+            repo = provider.get_remetente_repository()
+            repo.seed_if_empty()
+
     return app
 
 
