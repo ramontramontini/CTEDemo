@@ -40,3 +40,4 @@ htmlcov/
 
 # Agent worktree inboxes
 inbox/
+frontend/.vite/
