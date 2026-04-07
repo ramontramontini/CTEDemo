@@ -1,4 +1,4 @@
-# Testing Guide — EuPraxis
+# Testing Guide — CTEDemo
 
 > Test organization, naming conventions, and aggregate-aligned test structure.
 

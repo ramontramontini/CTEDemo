@@ -1,32 +1,31 @@
 # CTEDemo Domain Overview
 
-## Sistema Gerador e Gerenciador de CT-e
+## Aggregates
 
-### Objetivo
-Motor de geracao de CT-e que transforma dados de pedidos de frete (entrada JSON) em documentos fiscais eletronicos validos no formato XML v4.00.
+### Cte
 
-### Escopo Inicial
-- Sem integracao com sistemas externos (SEFAZ, etc.)
-- Sem filas de mensagens
-- Foco na geracao e validacao do XML
+- **Entity:** `cte/entity.py`
+- **Home:** `cte/home.py`
+- **Repository:** `cte/repository.py`
 
-### Aggregates
+### Remetente
 
-```
-cte/ ──────── CT-e document lifecycle (core)
-remetente/ ── Sender/shipper
-destinatario/ Recipient
-transportadora/ Carrier
-shared/ ───── Cross-aggregate VOs (CNPJ, CPF, UF, Money, ChaveAcesso)
-services/ ─── Cross-aggregate orchestration (CTeGeneratorService)
-```
+- **Entity:** `remetente/entity.py`
+- **Home:** `remetente/home.py`
+- **Repository:** `remetente/repository.py`
 
-### Dependency Graph
-```
-shared/ <── cte/ <── services/
-  ^           ^
-  |           |
-  ├── remetente/
-  ├── destinatario/
-  └── transportadora/
-```
+### Destinatario
+
+- **Entity:** `destinatario/entity.py`
+- **Home:** `destinatario/home.py`
+- **Repository:** `destinatario/repository.py`
+
+### Transportadora
+
+- **Entity:** `transportadora/entity.py`
+- **Home:** `transportadora/home.py`
+- **Repository:** `transportadora/repository.py`
+
+## Dependencies
+
+> TODO: Define aggregate dependency graph

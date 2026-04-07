@@ -1,4 +1,4 @@
-# Code Quality Standards — EuPraxis
+# Code Quality Standards — CTEDemo
 
 > L1 deep-dive for SOLID, OOP, design patterns, frontend patterns, and clean code.
 > L1 portable rules: `.claude/rules/02-L1-code-quality.md`
@@ -24,7 +24,7 @@
 
 ---
 
-## OOP Patterns for EuPraxis
+## OOP Patterns for CTEDemo
 
 ### Entity Pattern
 ```python
@@ -285,4 +285,4 @@ class MoveStoryToDoingUseCase:
 
 ---
 
-*DRAFT — will be refined as EuPraxis_Domain epic implements domain entities.*
+*DRAFT — will be refined as CTEDemo_Domain epic implements domain entities.*

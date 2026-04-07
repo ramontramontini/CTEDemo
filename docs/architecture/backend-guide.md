@@ -1,4 +1,4 @@
-# Backend Architecture Guide — EuPraxis
+# Backend Architecture Guide — CTEDemo
 
 > FastAPI backend patterns, domain architecture, and infrastructure conventions.
 
@@ -251,4 +251,4 @@ bash scripts/migration-smoke-test.sh
 
 ---
 
-*DRAFT — architecture will evolve as EuPraxis_Domain entities are implemented.*
+*DRAFT — architecture will evolve as CTEDemo_Domain entities are implemented.*

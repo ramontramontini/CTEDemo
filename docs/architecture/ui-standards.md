@@ -1,6 +1,6 @@
-# UI Standards — EuPraxis
+# UI Standards — CTEDemo
 
-> Design system, Tailwind conventions, and component patterns for the EuPraxis frontend.
+> Design system, Tailwind conventions, and component patterns for the CTEDemo frontend.
 
 ---
 

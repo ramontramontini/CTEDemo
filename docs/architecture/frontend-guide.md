@@ -1,4 +1,4 @@
-# Frontend Architecture Guide — EuPraxis
+# Frontend Architecture Guide — CTEDemo
 
 > React 19 + TypeScript + Tailwind CSS patterns and conventions.
 

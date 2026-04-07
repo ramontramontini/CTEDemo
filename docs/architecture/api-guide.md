@@ -1,6 +1,6 @@
-# API Guide — EuPraxis
+# API Guide — CTEDemo
 
-> REST API patterns, error handling, and conventions for the EuPraxis backend.
+> REST API patterns, error handling, and conventions for the CTEDemo backend.
 
 ---
 
@@ -110,7 +110,7 @@ Default: `page=1`, `per_page=20`, `sort=created_at`, `order=desc`
 ## Filtering
 
 ```
-GET /api/v1/stories?status=todo&epic=EuPraxis_Boot
+GET /api/v1/stories?status=todo&epic=CTEDemo_Boot
 GET /api/v1/agents?available=true
 ```
 
@@ -547,7 +547,7 @@ Terminal stories (ARCHIVED/CANCELED) excluded from display and queue stats but i
 
 **Connection lifecycle:**
 1. Client connects via WebSocket upgrade
-2. Server sends `WelcomeEvent` with `message: "Connected to EuPraxis event stream"`
+2. Server sends `WelcomeEvent` with `message: "Connected to CTEDemo event stream"`
 3. Client can send `{"type": "ping"}` → receives `{"type": "pong"}` (keepalive)
 4. Server broadcasts domain events as they occur
 5. On disconnect, connection is removed from active set

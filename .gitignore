@@ -2,17 +2,23 @@
 node_modules/
 __pycache__/
 *.pyc
-.venv/
-venv/
-
-# Environment
-.env
-.env.local
+*.egg-info/
 
 # Build
 dist/
 build/
-*.egg-info/
+.vite/
+
+# Test
+.pytest_cache/
+.coverage
+playwright-report/
+test-results/
+
+# Environment
+.env.local
+temp/
+temp/memory-state.json
 
 # IDE
 .idea/
@@ -20,24 +26,6 @@ build/
 *.swp
 *.swo
 
-# Project ephemeral
-temp/
-spike/
-stories/doing/
-stories/done/
-stories/todo/
-stories/canceled/
-stories/archive/
-
 # OS
 .DS_Store
 Thumbs.db
-
-# Test
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Agent worktree inboxes
-inbox/
-frontend/.vite/

@@ -1,11 +1,72 @@
-# L2 Project Stack — CTEDemo (Auto-Loaded)
+# L2 Project Stack — CTEDemo-Specific (Auto-Loaded)
+
+> Per-project configuration: tech stack, data modes, test commands, environment.
+> L0+L1 rules are identical across projects. L2+L3 are project-specific.
 
 ---
 
 ## Identity
-**CTEDemo** = Sistema Gerador e Gerenciador de CT-e
+**CTEDemo** = Autonomous Development Through Practical Wisdom
 **Stack:** Vite/React 19/TypeScript | FastAPI/SQLAlchemy/PostgreSQL | Playwright/Vitest/pytest
-**UI:** Tailwind CSS utility classes + custom components
+**UI:** Tailwind CSS utility classes + custom components. Design system in `docs/architecture/ui-standards.md`
+
+---
+
+## Rule 0: DATA_MODE Bifurcation
+**Main worktree** runs `DATA_MODE=db` (PostgreSQL is source of truth).
+**Agent worktrees** run `DATA_MODE=memory` (isolated development).
+**Tests** always run with `DATA_MODE=memory`.
+Agents MUST NOT connect to main's database without `DATABASE_SCHEMA` isolation.
+
+**Story operations via hub API:** Agents use `$EUPRAXIS_HUB_URL` (from `.env`) for all story API calls (create, transition, query, claim). Main's PostgreSQL is the single source of truth for story state. Agents stay isolated in memory mode for local development and tests — story state is managed centrally through main's backend, not locally.
+
+```bash
+# Main worktree (DB mode — production-like)
+./scripts/prod-local.sh                # starts Docker PG, Alembic, seeds, launches backend+frontend
+
+# Agent worktree (memory mode — development)
+cd backend && DATA_MODE=memory uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+cd frontend && VITE_DATA_MODE=memory npm run dev
+```
+- Memory mode: `temp/memory-state.json` auto-persists. Delete or `POST /api/v1/dev/reset-data` to restore
+- DB mode: PostgreSQL via Docker. `alembic upgrade head` applies migrations
+
+---
+
+<!-- EUPRAXIS:MANAGED:START -->
+## Data Source Consistency (MANDATORY)
+- **Frontend production code must NOT import from mock data files** (`mockData.ts`, `mock_data/`, etc.)
+- **All runtime data must flow through the API layer:** hooks → api-service → backend. No exceptions
+- **Mock data files are for tests and backend memory repositories only** — never for frontend components, pages, or hooks
+- **`DATA_MODE` controls backend repository selection, not frontend data source** — the frontend always calls the API regardless of mode
+- **When no backend endpoint exists yet:** initialize state to `[]` with a `// TODO: wire to API when endpoint exists` comment — never import mock data as a placeholder
+<!-- EUPRAXIS:MANAGED:END -->
+
+---
+
+<!-- EUPRAXIS:MANAGED:START -->
+## Story IDs
+Story IDs are UTC timestamps in `YYYY-MM-DD.HH-MM-SS` format. Stories created via `POST /api/v1/stories` (DB is source of truth). Local files exported on-demand via Export button or `POST /api/v1/sync/db-to-file` (gitignored cache). Hooks query the hub API, not the filesystem.
+> Full rules: CLAUDE.md §Policy 2
+
+---
+
+## Story Type Mapping
+
+Display labels (used in filenames and CLAUDE.md) differ from API values for some types. Use this table when creating stories via `POST /api/v1/stories`.
+
+| Display Label | File Label | API Value (`type` field) |
+|--------------|------------|-------------------------|
+| Story | story | `feature` |
+| BUG | bug | `bug` |
+| SDLC | sdlc | `sdlc` |
+| Data | data | `data` |
+| Refactor | refactor | `refactoring` |
+| Maintenance | maintenance | `maintenance` |
+| Investigation | investigation | `investigation` |
+
+> **Authoritative sources:** `StoryType` enum in `enums.py` is the canonical definition. `file_parser.py:FILE_TYPE_TO_STORY_TYPE` maps file labels → API values. `renderer.py:STORY_TYPE_TO_FILE_LABEL` maps API values → display labels. If new types are added, update this table.
+<!-- EUPRAXIS:MANAGED:END -->
 
 ---
 
@@ -19,29 +80,64 @@
 
 ALL suites must pass before commit.
 
----
-
-## Domain Aggregates
-
-```
-backend/src/domain/
-    cte/              # CT-e aggregate (main domain)
-    remetente/        # Sender (shipper)
-    destinatario/     # Recipient
-    transportadora/   # Carrier
-    shared/           # Cross-aggregate types (Money, CNPJ, etc.)
-    services/         # Cross-aggregate orchestration
-```
+**Test directories mirror aggregate names:** `tests/backend/{Aggregate}/`, `tests/api/{Aggregate}/`. Entity, enum, VO, Home, and repository tests all live under the same aggregate folder — not scattered by technical type.
 
 ---
 
 ## Environment
 
+**Main worktree (.env):**
 ```bash
-# Development
-cd backend && DATA_MODE=memory uvicorn src.main:app --reload --port 8000
-cd frontend && npm run dev
-
-# Production
-DATA_MODE=db  # PostgreSQL
+DATA_MODE=db              # PostgreSQL source of truth
+VITE_DATA_MODE=db         # frontend matches backend
+VITE_API_BASE_URL=http://localhost:8000
+POSTGRES_USER=postgres    # DB credentials — single source of truth
+POSTGRES_PASSWORD=eupraxis_dev_2026  # change for shared/production
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=eupraxis
+# DATABASE_URL assembled from components by settings.py. Override only if needed.
+ANTHROPIC_API_KEY=...     # for agent chat
 ```
+
+**Agent worktree (.env — generated by agents.sh):**
+```bash
+DATA_MODE=memory          # isolated development
+VITE_DATA_MODE=memory     # frontend matches backend
+VITE_API_BASE_URL=http://localhost:{AGENT_PORT}
+EUPRAXIS_HUB_URL=http://localhost:8000  # story API → main's backend
+```
+Frontend `:5173` (main) or `:AGENT_FRONTEND_PORT` (agent) | Backend `:8000` (main) or `:AGENT_PORT` (agent) | Docs `:8000/docs`
+
+---
+
+## References
+| Resource | Location |
+|----------|----------|
+| Gate Keeper subagent | `.claude/agents/gate-keeper.md` (Opus model — mandatory) |
+| Code quality | `docs/architecture/code-quality.md` |
+| Compliance checklist | `docs/templates/compliance-checklist.md` |
+| OO & Code Quality | `.claude/rules/02-L1-code-quality.md` |
+| Domain rules | `docs/domain/` |
+
+---
+
+<!-- EUPRAXIS:MANAGED:START -->
+## Model Tiering
+
+**Default context window: 200K.** All sessions (including batch) use 200K context. This reduces input token costs by limiting retained message history per turn. User may override to 1M for specific sessions if needed.
+
+**Agent tool model selection:**
+
+| Subagent Type | Model | Rationale |
+|---------------|-------|-----------|
+| Gate Keeper (all modes) | `model: "opus"` | Governance firewall — quality of gate reviews directly impacts shipped code. Non-negotiable |
+| Explore / research | `model: "sonnet"` | Read-only codebase exploration. No code writes. Errors caught by Opus execution phase |
+| Plan (design) | `model: "sonnet"` | Research and design — read-only. Implementation decisions verified by Gate Keeper |
+| General-purpose (read-only) | `model: "sonnet"` | Any Agent tool invocation that only reads files, searches code, or gathers information |
+| General-purpose (code-writing) | Inherit parent (Opus) | Agent invocations that write code inherit the parent session's model |
+
+**Rule:** When invoking the Agent tool, always specify the `model` parameter explicitly. Use `model: "sonnet"` for read-only subagents (Explore, Plan, research). Use `model: "opus"` for Gate Keeper and code-writing agents.
+
+**Complexity-Based Model Selection:** `BLOCKED: benchmark failed — see research log (docs/research/logs/RESEARCH-LOG-2026-04-06.12-09-19-MODEL-TIERING-COMPLEXITY.md)`. Sonnet Gate Keeper false positive rate was 100% on good fixtures (threshold: ≤5pp above Opus). Complexity heuristic deferred until Sonnet review quality improves. All execution sessions continue on Opus.
+<!-- EUPRAXIS:MANAGED:END -->
