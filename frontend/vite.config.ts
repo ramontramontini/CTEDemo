@@ -4,8 +4,9 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+  const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:9000/api/v1';
   const apiOrigin = new URL(apiBaseUrl).origin;
+  const serverPort = parseInt(process.env.VITE_PORT || '5174', 10);
 
   return {
     plugins: [react()],
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
+      port: serverPort,
       proxy: {
         '/api': {
           target: apiOrigin,
