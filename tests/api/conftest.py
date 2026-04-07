@@ -2,6 +2,7 @@
 
 import os
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from src.main import app
 from src.infrastructure.database.repositories.memory.state import MemoryState
@@ -18,7 +19,7 @@ def memory_state():
     state.clear()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(memory_state):
     """Async HTTP client for API tests."""
     transport = ASGITransport(app=app)

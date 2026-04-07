@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd backend && DATA_MODE=memory CORS_ORIGINS=http://localhost:12175,http://127.0.0.1:12175 PYTHONPATH=$(cd .. && pwd):${PYTHONPATH:-} .venv/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 9002"],
+      "port": 9002
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd frontend && VITE_DATA_MODE=memory VITE_API_BASE_URL=http://localhost:9002 npm run dev -- --port 12175"],
+      "port": 12175
+    }
+  ]
+}
