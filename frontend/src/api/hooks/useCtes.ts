@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../apiService';
 import { queryKeys } from './queryKeys';
-import type { CreateCteRequest } from '../../types';
 
 export function useCtes() {
   return useQuery({
@@ -18,10 +17,10 @@ export function useCte(id: string) {
   });
 }
 
-export function useCreateCte() {
+export function useGenerateCte() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateCteRequest) => api.createCte(data),
+    mutationFn: (data: Record<string, unknown>) => api.generateCte(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ctes.all });
     },

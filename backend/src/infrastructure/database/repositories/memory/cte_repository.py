@@ -1,5 +1,6 @@
 """In-memory Cte repository implementation."""
 
+import json
 from typing import Optional
 from uuid import UUID
 
@@ -20,12 +21,13 @@ class MemoryCteRepository(CteRepository):
         collection = self._state.get_collection(self._collection_name)
         data = {
             "id": str(entity.id),
-            "name": entity.name,
+            "access_key": entity.access_key,
+            "freight_order_number": entity.freight_order_number,
             "status": entity.status.value,
+            "xml": entity.xml,
+            "original_payload": json.dumps(entity.original_payload),
             "created_at": entity.created_at.isoformat(),
-            "updated_at": entity.updated_at.isoformat() if entity.updated_at else None,
         }
-        # Update existing or append
         for i, item in enumerate(collection):
             if item["id"] == str(entity.id):
                 collection[i] = data
@@ -58,10 +60,15 @@ class MemoryCteRepository(CteRepository):
     @staticmethod
     def _to_entity(data: dict) -> Cte:
         from datetime import datetime
+        payload = data.get("original_payload", "{}")
+        if isinstance(payload, str):
+            payload = json.loads(payload)
         return Cte(
             id=UUID(data["id"]),
-            name=data["name"],
+            access_key=data["access_key"],
+            freight_order_number=data["freight_order_number"],
             status=CteStatus(data["status"]),
+            xml=data["xml"],
+            original_payload=payload,
             created_at=datetime.fromisoformat(data["created_at"]),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
         )

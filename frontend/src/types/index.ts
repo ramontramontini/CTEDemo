@@ -4,18 +4,27 @@
 
 export interface Cte {
   id: string;
-  name: string;
+  access_key: string;
+  formatted_access_key: string;
+  freight_order_number: string;
   status: string;
+  xml: string;
   created_at: string;
-  updated_at: string | null;
 }
 
-export interface CreateCteRequest {
-  name: string;
+export interface GenerateCteRequest {
+  FreightOrder: string;
+  ERP: string;
+  Carrier: string;
+  CNPJ_Origin: string;
+  Incoterms: string;
+  OperationType: string;
+  Folder: Record<string, unknown>[];
 }
 
-export interface UpdateCteRequest {
-  name?: string;
+export interface ValidationError {
+  field: string;
+  message: string;
 }
 
 export interface Remetente {

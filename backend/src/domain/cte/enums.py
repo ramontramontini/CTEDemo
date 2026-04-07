@@ -4,7 +4,6 @@ from enum import Enum
 
 
 class CteStatus(str, Enum):
-    """Status of a Cte."""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ARCHIVED = "archived"
+    """Status of a generated CT-e document."""
+    GERADO = "gerado"
+    ERRO = "erro"

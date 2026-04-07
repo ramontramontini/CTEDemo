@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Cte, CreateCteRequest, Remetente, CreateRemetenteRequest, Destinatario, CreateDestinatarioRequest, Transportadora, CreateTransportadoraRequest } from '../types';
+import type { Cte, Remetente, CreateRemetenteRequest, Destinatario, CreateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, ValidationError } from '../types';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -7,11 +7,23 @@ const client = axios.create({
 
 export const api = {
 
-
   // Cte endpoints
   listCtes: () => client.get<Cte[]>('/ctes').then(r => r.data),
   getCte: (id: string) => client.get<Cte>(`/ctes/${id}`).then(r => r.data),
-  createCte: (data: CreateCteRequest) => client.post<Cte>('/ctes', data).then(r => r.data),
+  generateCte: async (data: Record<string, unknown>): Promise<Cte> => {
+    try {
+      const response = await client.post<Cte>('/ctes/generate', data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 422) {
+        const detail = error.response.data?.detail as ValidationError[] | undefined;
+        const validationError = new Error('Validation failed');
+        (validationError as unknown as Record<string, unknown>).validationErrors = detail || [];
+        throw validationError;
+      }
+      throw error;
+    }
+  },
 
   // Remetente endpoints
   listRemetentes: () => client.get<Remetente[]>('/remetentes').then(r => r.data),
