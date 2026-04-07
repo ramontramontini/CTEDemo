@@ -1,5 +1,6 @@
 [tool.poetry]
 name = "cte-demo-backend"
+package-mode = false
 version = "0.1.0"
 description = "Sistema Gerador e Gerenciador de CT-e"
 authors = []
