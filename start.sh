@@ -18,7 +18,7 @@
 #   DATA_MODE           memory | db
 #   VITE_API_BASE_URL   http://localhost:PORT (backend URL, port extracted)
 #   CORS_ORIGINS        http://localhost:PORT (allowed frontend origin)
-#   FRONTEND_PORT       frontend dev server port (default: 12173)
+#   FRONTEND_PORT       frontend dev server port (default: 5173)
 #   DATABASE_URL        PostgreSQL connection string (db mode)
 #   DB_NAME             database name (default: ctedemo)
 # =========================================
@@ -64,7 +64,7 @@ fi
 # Extract backend port from VITE_API_BASE_URL
 BACKEND_PORT=$(echo "${VITE_API_BASE_URL:-http://localhost:9000}" | sed 's|.*://[^:]*:\([0-9]*\).*|\1|')
 BACKEND_PORT="${BACKEND_PORT:-9000}"
-FRONTEND_PORT="${FRONTEND_PORT:-12173}"
+FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 DB_NAME="${DB_NAME:-$PROJECT_LOWER}"
 
 # Parse arguments
