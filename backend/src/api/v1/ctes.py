@@ -15,7 +15,7 @@ from src.domain.cte.repository import CteRepository
 router = APIRouter()
 
 
-@router.get("/ctes")
+@router.get("/cte")
 async def list_ctes(
     repo: CteRepository = Depends(get_cte_repository),
 ):
@@ -23,18 +23,22 @@ async def list_ctes(
     return [cte_to_response(e) for e in entities]
 
 
-@router.get("/ctes/{id}")
+@router.get("/cte/{id_or_freight_order}")
 async def get_cte(
-    id: UUID,
+    id_or_freight_order: str,
     repo: CteRepository = Depends(get_cte_repository),
 ):
-    entity = repo.find_by_id(id)
+    try:
+        cte_id = UUID(id_or_freight_order)
+        entity = repo.find_by_id(cte_id)
+    except ValueError:
+        entity = repo.find_by_freight_order_number(id_or_freight_order)
     if entity is None:
-        raise NotFoundError(f"Cte {id} not found")
+        raise NotFoundError(f"Cte {id_or_freight_order} not found")
     return cte_to_response(entity)
 
 
-@router.post("/ctes/generate", status_code=201)
+@router.post("/cte", status_code=201)
 async def generate_cte(
     request: GenerateCteRequest,
     repo: CteRepository = Depends(get_cte_repository),

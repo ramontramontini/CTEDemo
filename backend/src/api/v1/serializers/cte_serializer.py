@@ -11,5 +11,6 @@ def cte_to_response(entity: Cte) -> dict:
         "freight_order_number": entity.freight_order_number,
         "status": entity.status.value,
         "xml": entity.xml,
+        "original_payload": entity.original_payload,
         "created_at": entity.created_at.isoformat(),
     }

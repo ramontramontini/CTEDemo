@@ -23,5 +23,9 @@ class CteRepository(ABC):
         ...
 
     @abstractmethod
+    def find_by_freight_order_number(self, number: str) -> Optional[Cte]:
+        ...
+
+    @abstractmethod
     def delete(self, id: UUID) -> bool:
         ...

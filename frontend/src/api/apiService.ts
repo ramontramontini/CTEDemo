@@ -8,11 +8,11 @@ const client = axios.create({
 export const api = {
 
   // Cte endpoints
-  listCtes: () => client.get<Cte[]>('/ctes').then(r => r.data),
-  getCte: (id: string) => client.get<Cte>(`/ctes/${id}`).then(r => r.data),
+  listCtes: () => client.get<Cte[]>('/cte').then(r => r.data),
+  getCte: (id: string) => client.get<Cte>(`/cte/${id}`).then(r => r.data),
   generateCte: async (data: Record<string, unknown>): Promise<Cte> => {
     try {
-      const response = await client.post<Cte>('/ctes/generate', data);
+      const response = await client.post<Cte>('/cte', data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 422) {

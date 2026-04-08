@@ -48,6 +48,17 @@ class MemoryCteRepository(CteRepository):
         collection = self._state.get_collection(self._collection_name)
         return [self._to_entity(item) for item in collection]
 
+    def find_by_freight_order_number(self, number: str) -> Optional[Cte]:
+        collection = self._state.get_collection(self._collection_name)
+        matches = [
+            item for item in collection
+            if item.get("freight_order_number") == number
+        ]
+        if not matches:
+            return None
+        most_recent = max(matches, key=lambda x: x["created_at"])
+        return self._to_entity(most_recent)
+
     def delete(self, id: UUID) -> bool:
         collection = self._state.get_collection(self._collection_name)
         for i, item in enumerate(collection):
