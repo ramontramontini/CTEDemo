@@ -14,6 +14,7 @@ class GenerateCteRequest(BaseModel):
     ERP: str = ""
     Carrier: str = ""
     CNPJ_Origin: str = ""
+    CNPJ_Dest: str = ""
     Incoterms: str = ""
     OperationType: str = ""
     Folder: list[dict[str, Any]] = []

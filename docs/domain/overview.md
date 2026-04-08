@@ -7,9 +7,9 @@
 CT-e (Conhecimento de Transporte Eletrônico) — Brazilian electronic transport document generation.
 
 - **Entity:** `cte/entity.py` — Aggregate root with `access_key`, `freight_order_number`, `status`, `xml`, `original_payload`. Behavior: `is_gerado()`, `formatted_access_key()`
-- **Home:** `cte/home.py` — `CteHome.generate(payload, transportadora)` orchestrates FreightOrder validation → AccessKey generation → XML build → entity creation. Requires a `Transportadora` entity for `<emit>` enrichment
+- **Home:** `cte/home.py` — `CteHome.generate(payload, transportadora, remetente?, destinatario?)` orchestrates FreightOrder validation → AccessKey generation → XML build → entity creation. Requires `Transportadora` for `<emit>`, optionally accepts `Remetente` for `<rem>` enrichment and `Destinatario` for `<dest>` section
 - **Value Objects:** `cte/value_objects.py` — `AccessKey` (44-digit with mod11 DV), `FreightOrder`/`FreightOrderFolder`/`FreightOrderTax` (input parsing + validation)
-- **XML Builder:** `cte/xml_builder.py` — Builds CT-e XML v4.00 structure (identification, parties, values, taxes, cargo, modal). `<emit>` section enriched with Transportadora data (xNome, IE, enderEmit)
+- **XML Builder:** `cte/xml_builder.py` — Builds CT-e XML v4.00 structure: `<ide>`, `<compl>`, `<emit>` (Transportadora), `<rem>` (Remetente), `<dest>` (Destinatario), `<vPrest>`, `<imp>` (per-tax-type: ICMS with CST groups, COFINS, PIS + vTotTrib), `<infCTeNorm>` (cargo, NF-e refs, modal with vehicle + trailer plates)
 - **CFOP Validator:** `cte/cfop_validator.py` — Geographic validation: 5xxx requires same-state, 6xxx requires cross-state origin/destination
 - **Enums:** `cte/enums.py` — `CteStatus.GERADO`, `CteStatus.ERRO`
 - **Repository:** `cte/repository.py`
@@ -50,11 +50,12 @@ NF-e (Nota Fiscal Eletrônica) — mock repository for related NF-e validation d
 
 ### Services (Cross-Aggregate Orchestration)
 
-- **CteGenerationService:** `services/cte_generation_service.py` — Orchestrates Transportadora lookup + CT-e generation. Validates carrier CNPJ exists in Transportadora registry before delegating to `CteHome.generate()`. Keeps Home infrastructure-free per L1 cross-aggregate rules
+- **CteGenerationService:** `services/cte_generation_service.py` — Orchestrates Transportadora/Remetente/Destinatario lookup + CT-e generation. Validates carrier CNPJ exists in Transportadora registry, optionally resolves Remetente (by CNPJ_Origin) and Destinatario (by CNPJ_Dest) for XML enrichment, then delegates to `CteHome.generate()`. Keeps Home infrastructure-free per L1 cross-aggregate rules
 - **NfeValidationService:** `services/nfe_validation_service.py` — Validates NF-e keys exist and are authorized. Unknown/canceled keys raise ValueError (400). CNPJ divergence between NF-e emitter and CNPJ_Origin returns non-blocking warnings
 
 ## Dependencies
 
-- **Cte → Transportadora:** CT-e generation requires a registered Transportadora (carrier lookup via `CteGenerationService`)
-- **Cte → Destinatario:** CFOP geographic validation requires Destinatario UF (optional — skipped when no `CNPJ_Dest`)
+- **Cte → Transportadora:** CT-e generation requires a registered Transportadora (carrier lookup via `CteGenerationService`) for `<emit>` XML enrichment
+- **Cte → Remetente:** Optional — `<rem>` section enriched with Remetente entity data (xNome, IE, enderRem) when CNPJ_Origin matches a registered Remetente. Falls back to CNPJ-only stub
+- **Cte → Destinatario:** Optional — `<dest>` section built from Destinatario entity when CNPJ_Dest provided. Also used for CFOP geographic validation (skipped when no `CNPJ_Dest`)
 - **Cte → Nfe:** Related NF-e validation — keys in `RelatedNFE` checked against NF-e repository (unknown/canceled → 400, emitter CNPJ divergence → warning)

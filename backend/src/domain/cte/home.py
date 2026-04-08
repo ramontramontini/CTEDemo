@@ -3,12 +3,14 @@
 import random
 import threading
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.cte.entity import Cte
 from src.domain.cte.enums import CteStatus
 from src.domain.cte.value_objects import AccessKey, FreightOrder
 from src.domain.cte.xml_builder import build_cte_xml
+from src.domain.destinatario.entity import Destinatario
+from src.domain.remetente.entity import Remetente
 from src.domain.transportadora.entity import Transportadora
 
 
@@ -38,12 +40,19 @@ class CteHome:
     """Factory and lifecycle manager for CT-e generation."""
 
     @staticmethod
-    def generate(payload: dict[str, Any], transportadora: Transportadora) -> Cte:
+    def generate(
+        payload: dict[str, Any],
+        transportadora: Transportadora,
+        remetente: Optional[Remetente] = None,
+        destinatario: Optional[Destinatario] = None,
+    ) -> Cte:
         """Generate a CT-e from a freight order payload.
 
         Args:
             payload: Raw freight order dict from API request.
             transportadora: Looked-up Transportadora entity for XML enrichment.
+            remetente: Optional Remetente entity for <rem> enrichment.
+            destinatario: Optional Destinatario entity for <dest> section.
         """
         freight_order = FreightOrder.from_dict(payload)
 
@@ -61,7 +70,7 @@ class CteHome:
             codigo=codigo,
         )
 
-        xml = build_cte_xml(freight_order, access_key, now, transportadora)
+        xml = build_cte_xml(freight_order, access_key, now, transportadora, remetente, destinatario)
 
         return Cte._create_raw(
             access_key=access_key.value,

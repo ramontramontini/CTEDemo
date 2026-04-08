@@ -9,6 +9,7 @@ from src.api.dependencies import (
     get_cte_repository,
     get_destinatario_repository,
     get_nfe_repository,
+    get_remetente_repository,
     get_transportadora_repository,
 )
 from src.api.exceptions import NotFoundError
@@ -18,6 +19,7 @@ from src.domain.cte.cfop_validator import CfopGeographicValidator
 from src.domain.cte.repository import CteRepository
 from src.domain.destinatario.repository import DestinatarioRepository
 from src.domain.nfe.repository import NfeRepository
+from src.domain.remetente.repository import RemetenteRepository
 from src.domain.services.cte_generation_service import CteGenerationService
 from src.domain.services.nfe_validation_service import NfeValidationService
 from src.domain.transportadora.repository import TransportadoraRepository
@@ -54,11 +56,12 @@ async def generate_cte(
     repo: CteRepository = Depends(get_cte_repository),
     transportadora_repo: TransportadoraRepository = Depends(get_transportadora_repository),
     destinatario_repo: DestinatarioRepository = Depends(get_destinatario_repository),
+    remetente_repo: RemetenteRepository = Depends(get_remetente_repository),
     nfe_repo: NfeRepository = Depends(get_nfe_repository),
 ):
     payload = request.model_dump()
 
-    service = CteGenerationService(transportadora_repo)
+    service = CteGenerationService(transportadora_repo, remetente_repo, destinatario_repo)
     try:
         transportadora = service.lookup_carrier(payload.get("Carrier", ""))
     except ValueError as e:
@@ -83,8 +86,11 @@ async def generate_cte(
         errors = _parse_validation_errors("\n".join(geo_errors))
         return JSONResponse(status_code=422, content={"detail": errors})
 
+    remetente = remetente_repo.find_by_cnpj(payload.get("CNPJ_Origin", "")) if payload.get("CNPJ_Origin") else None
+    destinatario = destinatario_repo.find_by_cnpj(payload.get("CNPJ_Dest", "")) if payload.get("CNPJ_Dest") else None
+
     try:
-        entity = service.generate_with_carrier(payload, transportadora)
+        entity = service.generate_with_carrier(payload, transportadora, remetente, destinatario)
     except ValueError as e:
         errors = _parse_validation_errors(str(e))
         return JSONResponse(status_code=422, content={"detail": errors})
