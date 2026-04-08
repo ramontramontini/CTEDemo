@@ -89,7 +89,17 @@ while true; do
   fi
   # If no file exists: no data, don't emit idle_silent (new session, no tools yet)
 
-  # Build payload with optional signal field
+  # Collect git worktree state
+  _ka_project_dir="${CLAUDE_PROJECT_DIR:-.}"
+  _ka_wt_dirty=$(git -C "$_ka_project_dir" status --porcelain 2>/dev/null | head -1)
+  _ka_worktree_dirty=$( [ -n "$_ka_wt_dirty" ] && echo "true" || echo "false" )
+  _ka_branch=$(git -C "$_ka_project_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  _ka_behind=$(git -C "$_ka_project_dir" rev-list --count HEAD..origin/main 2>/dev/null || echo "")
+  _ka_ahead=$(git -C "$_ka_project_dir" rev-list --count origin/main..HEAD 2>/dev/null || echo "")
+  _ka_hash=$(git -C "$_ka_project_dir" rev-parse --short HEAD 2>/dev/null || echo "")
+  _ka_msg=$(git -C "$_ka_project_dir" log -1 --format=%s 2>/dev/null || echo "")
+
+  # Build payload with optional signal field + worktree state
   _ka_session_id=$(resolve_session_id "$SID")
 
   _payload=$(jq -n \
@@ -97,11 +107,23 @@ while true; do
     --arg tt "$_todo_total" \
     --argjson sig "$_signal_field" \
     --arg sid "$_ka_session_id" \
+    --argjson wd "$_ka_worktree_dirty" \
+    --arg br "$_ka_branch" \
+    --arg bh "$_ka_behind" \
+    --arg ah "$_ka_ahead" \
+    --arg ch "$_ka_hash" \
+    --arg cm "$_ka_msg" \
     '{
       todo_completed: (if $tc == "" then null else ($tc | tonumber) end),
       todo_total: (if $tt == "" then null else ($tt | tonumber) end),
       signal: $sig,
-      session_id: (if $sid == "" then null else $sid end)
+      session_id: (if $sid == "" then null else $sid end),
+      worktree_dirty: $wd,
+      branch: (if $br == "" then null else $br end),
+      behind_count: (if $bh == "" then null else ($bh | tonumber) end),
+      ahead_count: (if $ah == "" then null else ($ah | tonumber) end),
+      last_commit_hash: (if $ch == "" then null else $ch end),
+      last_commit_message: (if $cm == "" then null else $cm end)
     }')
 
   hub_post "/api/v1/agents/by-name/${AGENT_NAME}/status?machine_id=${MACHINE_ID}" "$_payload" >/dev/null 2>&1 || true

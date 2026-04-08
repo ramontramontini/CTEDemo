@@ -90,7 +90,17 @@ if [ -f "$TODO_PROGRESS_FILE" ]; then
   todo_total=$(jq -r '.todo_total // empty' "$TODO_PROGRESS_FILE" 2>/dev/null)
 fi
 
-# ─── Build heartbeat-only JSON payload (no signal fields) ───────
+# ─── Collect git worktree state ─────────────────────────────────
+_project_dir="${CLAUDE_PROJECT_DIR:-.}"
+_wt_dirty=$(git -C "$_project_dir" status --porcelain 2>/dev/null | head -1)
+_worktree_dirty=$( [ -n "$_wt_dirty" ] && echo "true" || echo "false" )
+_branch=$(git -C "$_project_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+_behind=$(git -C "$_project_dir" rev-list --count HEAD..origin/main 2>/dev/null || echo "")
+_ahead=$(git -C "$_project_dir" rev-list --count origin/main..HEAD 2>/dev/null || echo "")
+_hash=$(git -C "$_project_dir" rev-parse --short HEAD 2>/dev/null || echo "")
+_msg=$(git -C "$_project_dir" log -1 --format=%s 2>/dev/null || echo "")
+
+# ─── Build heartbeat JSON payload with worktree state ───────────
 SESSION_ID=$(resolve_session_id "$MARKER_ID")
 
 payload=$(jq -n \
@@ -98,11 +108,23 @@ payload=$(jq -n \
   --arg tc "$todo_completed" \
   --arg tt "$todo_total" \
   --arg sid "$SESSION_ID" \
+  --argjson wd "$_worktree_dirty" \
+  --arg br "$_branch" \
+  --arg bh "$_behind" \
+  --arg ah "$_ahead" \
+  --arg ch "$_hash" \
+  --arg cm "$_msg" \
   '{
     current_action: $ca,
     session_id: (if $sid == "" then null else $sid end),
     todo_completed: (if $tc == "" then null else ($tc | tonumber) end),
-    todo_total: (if $tt == "" then null else ($tt | tonumber) end)
+    todo_total: (if $tt == "" then null else ($tt | tonumber) end),
+    worktree_dirty: $wd,
+    branch: (if $br == "" then null else $br end),
+    behind_count: (if $bh == "" then null else ($bh | tonumber) end),
+    ahead_count: (if $ah == "" then null else ($ah | tonumber) end),
+    last_commit_hash: (if $ch == "" then null else $ch end),
+    last_commit_message: (if $cm == "" then null else $cm end)
   }')
 
 # ─── Push to hub API (fail-open) ────────────────────────────────
