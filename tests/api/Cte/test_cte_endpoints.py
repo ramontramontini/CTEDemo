@@ -5,6 +5,10 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from src.api.dependencies import get_cte_publisher
+from src.infrastructure.messaging.memory_cte_publisher import MemoryCtePublisher
+from src.main import app
+
 
 VALID_PAYLOAD = {
     "FreightOrder": "12345678901234",
@@ -169,6 +173,7 @@ class TestListAndGetCte:
 @pytest.mark.asyncio
 class TestDuplicateFreightOrder:
     async def test_duplicate_freight_order_returns_400(self, client: AsyncClient):
+        await _register_carrier(client)
         response1 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         assert response1.status_code == 201
         response2 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
@@ -177,6 +182,7 @@ class TestDuplicateFreightOrder:
         assert data["detail"] == "Freight order '12345678901234' already exists"
 
     async def test_duplicate_does_not_block_different_freight_order(self, client: AsyncClient):
+        await _register_carrier(client)
         response1 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         assert response1.status_code == 201
         response2 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
@@ -379,3 +385,59 @@ class TestNfeValidation:
         data = response.json()
         assert len(data["warnings"]) == 1
         assert "differs from CNPJ_Origin" in data["warnings"][0]
+
+
+@pytest.mark.asyncio
+class TestSchemaValidation:
+    """Schema-level validation — extra fields, Incoterms, OperationType, CNPJ_Dest."""
+
+    async def test_unknown_field_rejected_422(self, client: AsyncClient):
+        payload = {**VALID_PAYLOAD, "FreightOder": "typo"}
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+
+    async def test_invalid_incoterms_rejected_422(self, client: AsyncClient):
+        await _register_carrier(client)
+        payload = {**VALID_PAYLOAD, "Incoterms": "EXWORKS"}
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+
+    async def test_invalid_operation_type_rejected_422(self, client: AsyncClient):
+        await _register_carrier(client)
+        payload = {**VALID_PAYLOAD, "OperationType": "99"}
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+
+    async def test_missing_cnpj_origin_rejected_422(self, client: AsyncClient):
+        await _register_carrier(client)
+        payload = {**VALID_PAYLOAD, "CNPJ_Origin": ""}
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+
+    async def test_cnpj_dest_accepted_as_declared_field(self, client: AsyncClient):
+        await _register_carrier(client)
+        payload = {**VALID_PAYLOAD, "CNPJ_Dest": "44555666000181"}
+        response = await client.post("/api/v1/cte", json=payload)
+        # Should not be rejected as unknown field — CNPJ_Dest is declared
+        assert response.status_code != 422 or "CNPJ_Dest" not in str(response.json())
+
+
+@pytest.mark.asyncio
+class TestFilaPublisher:
+    """Fila publisher integration — AC3."""
+
+    async def test_generate_cte_publishes_to_fila(self, client: AsyncClient):
+        """After successful POST /cte, publisher records an event."""
+        test_publisher = MemoryCtePublisher()
+        app.dependency_overrides[get_cte_publisher] = lambda: test_publisher
+        try:
+            await _register_carrier(client)
+            response = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+            assert response.status_code == 201
+            events = test_publisher.published_events()
+            assert len(events) == 1
+            assert events[0]["freight_order_number"] == "12345678901234"
+            assert len(events[0]["access_key"]) == 44
+            assert events[0]["payload"]["FreightOrder"] == "12345678901234"
+        finally:
+            app.dependency_overrides.pop(get_cte_publisher, None)

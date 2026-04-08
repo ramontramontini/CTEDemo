@@ -63,8 +63,8 @@ def create_app() -> FastAPI:
         if settings.data_mode == "memory":
             from src.infrastructure.database.repositories.provider import get_repository_provider
             provider = get_repository_provider()
-            repo = provider.get_remetente_repository()
-            repo.seed_if_empty()
+            provider.get_remetente_repository().seed_if_empty()
+            provider.get_destinatario_repository().seed_if_empty()
 
     return app
 

@@ -82,6 +82,37 @@ class TestFreightOrder:
         with pytest.raises(ValueError, match="Folder"):
             FreightOrder.from_dict(payload)
 
+    def test_cnpj_origin_required(self):
+        payload = {**VALID_PAYLOAD, "CNPJ_Origin": ""}
+        with pytest.raises(ValueError, match="CNPJ_Origin"):
+            FreightOrder.from_dict(payload)
+
+    def test_invalid_incoterms_rejected(self):
+        payload = {**VALID_PAYLOAD, "Incoterms": "EXWORKS"}
+        with pytest.raises(ValueError, match="Incoterms"):
+            FreightOrder.from_dict(payload)
+
+    def test_invalid_operation_type_rejected(self):
+        payload = {**VALID_PAYLOAD, "OperationType": "99"}
+        with pytest.raises(ValueError, match="OperationType"):
+            FreightOrder.from_dict(payload)
+
+    def test_duplicate_folder_number_rejected(self):
+        folder2 = {**VALID_FOLDER, "ReferenceNumber": "REF002"}
+        payload = {**VALID_PAYLOAD, "Folder": [VALID_FOLDER, folder2]}
+        with pytest.raises(ValueError, match="FolderNumber.*duplicad"):
+            FreightOrder.from_dict(payload)
+
+    def test_all_folder_errors_collected(self):
+        bad_folder_0 = {**VALID_FOLDER, "NetValue": "abc", "Weight": "xyz"}
+        bad_folder_1 = {**VALID_FOLDER, "FolderNumber": "002", "NetValue": "bad"}
+        payload = {**VALID_PAYLOAD, "Folder": [bad_folder_0, bad_folder_1]}
+        with pytest.raises(ValueError) as exc_info:
+            FreightOrder.from_dict(payload)
+        msg = str(exc_info.value)
+        assert "Folder[0]" in msg
+        assert "Folder[1]" in msg
+
 
 class TestFreightOrderFolder:
     """FreightOrderFolder VO tests."""
@@ -152,6 +183,51 @@ class TestFreightOrderFolder:
         folder = FreightOrderFolder.from_dict(data, index=0)
         assert folder.net_value == 1702.40
 
+    def test_non_numeric_net_value_rejected(self):
+        data = {**VALID_FOLDER, "NetValue": "abc"}
+        with pytest.raises(ValueError, match="NetValue"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_non_numeric_weight_rejected(self):
+        data = {**VALID_FOLDER, "Weight": "xyz"}
+        with pytest.raises(ValueError, match="Weight"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_weight_zero_rejected(self):
+        data = {**VALID_FOLDER, "Weight": 0}
+        with pytest.raises(ValueError, match="Weight"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_weight_negative_rejected(self):
+        data = {**VALID_FOLDER, "Weight": -100}
+        with pytest.raises(ValueError, match="Weight"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_invalid_nfe_key_length_rejected(self):
+        data = {**VALID_FOLDER, "RelatedNFE": ["1234567890123456789012345678901234567890123"]}
+        with pytest.raises(ValueError, match="RelatedNFE"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_invalid_nfe_key_non_numeric_rejected(self):
+        data = {**VALID_FOLDER, "RelatedNFE": ["1234567890123456789012345678901234567890123X"]}
+        with pytest.raises(ValueError, match="RelatedNFE"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_trailer_plate_invalid_format_rejected(self):
+        data = {**VALID_FOLDER, "TrailerPlate": ["INVALID"]}
+        with pytest.raises(ValueError, match="TrailerPlate"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_vehicle_axles_required(self):
+        data = {**VALID_FOLDER, "VehicleAxles": ""}
+        with pytest.raises(ValueError, match="VehicleAxles"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_equipment_type_required(self):
+        data = {**VALID_FOLDER, "EquipmentType": ""}
+        with pytest.raises(ValueError, match="EquipmentType"):
+            FreightOrderFolder.from_dict(data, index=0)
+
 
 class TestFreightOrderTax:
     """FreightOrderTax VO tests."""
@@ -201,3 +277,33 @@ class TestFreightOrderTax:
         tax = FreightOrderTax.from_dict(data)
         assert tax.base == 0
         assert tax.value == 0
+
+    def test_non_numeric_base_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": "abc"}
+        with pytest.raises(ValueError, match="Base"):
+            FreightOrderTax.from_dict(data)
+
+    def test_non_numeric_rate_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Rate": "xyz"}
+        with pytest.raises(ValueError, match="Rate"):
+            FreightOrderTax.from_dict(data)
+
+    def test_non_numeric_value_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Value": "bad"}
+        with pytest.raises(ValueError, match="Value"):
+            FreightOrderTax.from_dict(data)
+
+    def test_tax_base_negative_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": -10, "Rate": 0, "Value": 0}
+        with pytest.raises(ValueError, match="Base"):
+            FreightOrderTax.from_dict(data)
+
+    def test_tax_value_negative_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": 100, "Rate": 12, "Value": -5}
+        with pytest.raises(ValueError, match="Value"):
+            FreightOrderTax.from_dict(data)
+
+    def test_tax_rate_negative_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Rate": -1, "Base": 100, "Value": 0}
+        with pytest.raises(ValueError, match="Rate"):
+            FreightOrderTax.from_dict(data)

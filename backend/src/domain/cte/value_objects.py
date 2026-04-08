@@ -77,14 +77,26 @@ class FreightOrderTax:
     reduced_base: float
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "FreightOrderTax":
+    def from_dict(cls, data: dict[str, Any], prefix: str = "") -> "FreightOrderTax":
+        errors: list[str] = []
         tax_type = data.get("TaxType", "")
         if not tax_type:
-            raise ValueError("TaxType é obrigatório")
-        base = round(float(data.get("Base", 0)), 2)
-        rate = round(float(data.get("Rate", 0)), 4)
-        value = round(float(data.get("Value", 0)), 2)
-        reduced_base = round(float(data.get("ReducedBase", 0)), 2)
+            errors.append(f"{prefix}TaxType é obrigatório")
+
+        base = cls._parse_float(data.get("Base", 0), f"{prefix}Base", 2, errors)
+        rate = cls._parse_float(data.get("Rate", 0), f"{prefix}Rate", 4, errors)
+        value = cls._parse_float(data.get("Value", 0), f"{prefix}Value", 2, errors)
+        reduced_base = cls._parse_float(data.get("ReducedBase", 0), f"{prefix}ReducedBase", 2, errors)
+
+        if base is not None and base < 0:
+            errors.append(f"{prefix}Base deve ser maior ou igual a zero")
+        if rate is not None and rate < 0:
+            errors.append(f"{prefix}Rate deve ser maior ou igual a zero")
+        if value is not None and value < 0:
+            errors.append(f"{prefix}Value deve ser maior ou igual a zero")
+
+        if errors:
+            raise ValueError("\n".join(errors))
 
         if base > 0 and rate > 0:
             expected = round(base * rate / 100, 2)
@@ -103,6 +115,16 @@ class FreightOrderTax:
             tax_code=str(data.get("TaxCode", "")),
             reduced_base=reduced_base,
         )
+
+    @staticmethod
+    def _parse_float(
+        raw: Any, field_name: str, decimals: int, errors: list[str],
+    ) -> float | None:
+        try:
+            return round(float(raw), decimals)
+        except (ValueError, TypeError):
+            errors.append(f"{field_name} deve ser numérico")
+            return None
 
 
 @dataclass(frozen=True)
@@ -136,8 +158,12 @@ class FreightOrderFolder:
         if not reference_number:
             errors.append(f"{prefix}.ReferenceNumber é obrigatório")
 
-        net_value = round(float(data.get("NetValue", 0)), 2)
-        if net_value <= 0:
+        try:
+            net_value = round(float(data.get("NetValue", 0)), 2)
+        except (ValueError, TypeError):
+            errors.append(f"{prefix}.NetValue deve ser numérico")
+            net_value = 0
+        if net_value <= 0 and f"{prefix}.NetValue deve ser numérico" not in errors:
             errors.append(f"{prefix}.NetValue deve ser maior que zero")
 
         plate_raw = data.get("VehiclePlate", "")
@@ -169,26 +195,60 @@ class FreightOrderFolder:
         related_nfe = data.get("RelatedNFE", [])
         if not related_nfe:
             errors.append(f"{prefix}.RelatedNFE é obrigatório em cada Folder")
+        else:
+            for j, key in enumerate(related_nfe):
+                if not isinstance(key, str) or len(key) != 44 or not key.isdigit():
+                    errors.append(
+                        f"{prefix}.RelatedNFE[{j}] deve ser chave de 44 dígitos numéricos"
+                    )
+
+        vehicle_axles = str(data.get("VehicleAxles", ""))
+        if not vehicle_axles:
+            errors.append(f"{prefix}.VehicleAxles é obrigatório")
+
+        equipment_type = str(data.get("EquipmentType", ""))
+        if not equipment_type:
+            errors.append(f"{prefix}.EquipmentType é obrigatório")
+
+        try:
+            weight = float(data.get("Weight", 0))
+        except (ValueError, TypeError):
+            errors.append(f"{prefix}.Weight deve ser numérico")
+            weight = 0
+        if weight <= 0 and f"{prefix}.Weight deve ser numérico" not in errors:
+            errors.append(f"{prefix}.Weight deve ser maior que zero")
+
+        raw_trailer_plates = data.get("TrailerPlate", [])
+        validated_trailer_plates: list[str] = []
+        for j, tp in enumerate(raw_trailer_plates):
+            try:
+                validated_trailer_plates.append(VehiclePlate(tp).value)
+            except ValueError:
+                errors.append(
+                    f"{prefix}.TrailerPlate[{j}] — Placa inválida — "
+                    f"formato aceito: ABC1234 ou ABC1D23"
+                )
 
         if errors:
             raise ValueError("\n".join(errors))
 
-        taxes = tuple(FreightOrderTax.from_dict(t) for t in tax_list)
-        trailer_plates = tuple(data.get("TrailerPlate", []))
+        taxes: list[FreightOrderTax] = []
+        for k, t in enumerate(tax_list):
+            taxes.append(FreightOrderTax.from_dict(t, prefix=f"{prefix}.Tax[{k}]."))
 
         return cls(
             folder_number=folder_number,
             reference_number=reference_number,
             net_value=net_value,
             vehicle_plate=plate_value,
-            trailer_plates=trailer_plates,
-            vehicle_axles=str(data.get("VehicleAxles", "")),
-            equipment_type=str(data.get("EquipmentType", "")),
-            weight=float(data.get("Weight", 0)),
+            trailer_plates=tuple(validated_trailer_plates),
+            vehicle_axles=vehicle_axles,
+            equipment_type=equipment_type,
+            weight=weight,
             cfop=cfop,
             driver_id=driver_id,
             cancel=bool(data.get("Cancel", False)),
-            taxes=taxes,
+            taxes=tuple(taxes),
             related_nfe=tuple(related_nfe),
         )
 
@@ -223,11 +283,25 @@ class FreightOrder:
                 errors.append(f"Carrier — CNPJ inválido: {e}")
 
         cnpj_origin = data.get("CNPJ_Origin", "")
-        if cnpj_origin:
+        if not cnpj_origin:
+            errors.append("CNPJ_Origin é obrigatório")
+        else:
             try:
                 Cnpj(cnpj_origin)
             except ValueError as e:
                 errors.append(f"CNPJ_Origin — CNPJ inválido: {e}")
+
+        incoterms = str(data.get("Incoterms", ""))
+        if incoterms not in ("CIF", "FOB"):
+            errors.append(
+                f"Incoterms inválido '{incoterms}' — valores aceitos: CIF, FOB"
+            )
+
+        operation_type = str(data.get("OperationType", ""))
+        if operation_type not in ("0", "1", "2", "3"):
+            errors.append(
+                f"OperationType inválido '{operation_type}' — valores aceitos: 0, 1, 2, 3"
+            )
 
         folder_list = data.get("Folder")
         if not folder_list:
@@ -236,16 +310,34 @@ class FreightOrder:
         if errors:
             raise ValueError("\n".join(errors))
 
+        # Check duplicate FolderNumbers
+        folder_numbers: list[str] = []
+        for fd in folder_list:
+            fn = fd.get("FolderNumber", "")
+            if fn and fn in folder_numbers:
+                errors.append(f"FolderNumber '{fn}' duplicado — cada pasta deve ter número único")
+            folder_numbers.append(fn)
+
+        if errors:
+            raise ValueError("\n".join(errors))
+
         folders: list[FreightOrderFolder] = []
+        folder_errors: list[str] = []
         for i, folder_data in enumerate(folder_list):
-            folders.append(FreightOrderFolder.from_dict(folder_data, index=i))
+            try:
+                folders.append(FreightOrderFolder.from_dict(folder_data, index=i))
+            except ValueError as e:
+                folder_errors.append(str(e))
+
+        if folder_errors:
+            raise ValueError("\n".join(folder_errors))
 
         return cls(
             freight_order=freight_order,
             erp=str(data.get("ERP", "")),
             carrier=carrier,
             cnpj_origin=cnpj_origin,
-            incoterms=str(data.get("Incoterms", "")),
-            operation_type=str(data.get("OperationType", "")),
+            incoterms=incoterms,
+            operation_type=operation_type,
             folders=tuple(folders),
         )

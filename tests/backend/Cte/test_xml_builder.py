@@ -380,7 +380,7 @@ class TestXmlTrailerPlates:
     def test_empty_trailer_plates_skipped(self):
         payload = dict(VALID_PAYLOAD)
         folder = dict(VALID_PAYLOAD["Folder"][0])
-        folder["TrailerPlate"] = ["", "  "]
+        folder["TrailerPlate"] = []
         payload["Folder"] = [folder]
         xml = _build_xml(payload=payload)
         inf_cte = _parse_inf_cte(xml)

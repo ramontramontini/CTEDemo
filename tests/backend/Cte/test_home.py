@@ -1,9 +1,12 @@
 """Tests for CteHome — factory + CT-e generation."""
 
+import xml.etree.ElementTree as ET
+from unittest.mock import patch
+
 import pytest
 
 from src.domain.cte.enums import CteStatus
-from src.domain.cte.errors import DuplicateFreightOrderError
+from src.domain.cte.errors import CteXmlBuildError, DuplicateFreightOrderError
 from src.domain.cte.home import CteHome
 from src.domain.transportadora.home import TransportadoraHome
 from src.infrastructure.database.repositories.memory.cte_repository import MemoryCteRepository
@@ -114,3 +117,16 @@ class TestCteHome:
         repo.save(cte)
         with pytest.raises(DuplicateFreightOrderError, match="12345678901234"):
             CteHome.generate(VALID_PAYLOAD, transportadora, repo)
+
+    def test_generate_produces_well_formed_xml(self, repo):
+        """XML output is parseable by ET.fromstring."""
+        transportadora = _make_transportadora()
+        cte = CteHome.generate(VALID_PAYLOAD, transportadora, repo)
+        ET.fromstring(cte.xml.encode("utf-8"))
+
+    def test_generate_raises_xml_build_error_on_malformed_xml(self, repo):
+        """Monkeypatched xml_builder returning invalid XML -> CteXmlBuildError."""
+        transportadora = _make_transportadora()
+        with patch("src.domain.cte.home.build_cte_xml", return_value="<broken"):
+            with pytest.raises(CteXmlBuildError):
+                CteHome.generate(VALID_PAYLOAD, transportadora, repo)

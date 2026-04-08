@@ -81,7 +81,7 @@ class MemoryDestinatarioRepository(DestinatarioRepository):
         collection.extend([
             {
                 "id": str(uuid4()),
-                "cnpj": "11222333000181",
+                "cnpj": "44555666000181",
                 "cpf": None,
                 "razao_social": "Comercio Recife Ltda",
                 "nome_fantasia": "Recife Com",

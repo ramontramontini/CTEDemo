@@ -22,3 +22,11 @@ class DuplicateFreightOrderError(Exception):
     def __init__(self, freight_order: str):
         self.freight_order = freight_order
         super().__init__(f"Freight order '{freight_order}' already exists")
+
+
+class CteXmlBuildError(Exception):
+    """Raised when generated CT-e XML is not well-formed."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"CT-e XML malformado: {reason}")
