@@ -14,9 +14,9 @@ from src.api.exceptions import NotFoundError
 from src.api.v1.schemas.cte_schemas import GenerateCteRequest
 from src.api.v1.serializers.cte_serializer import cte_to_response
 from src.domain.cte.cfop_validator import CfopGeographicValidator
-from src.domain.cte.home import CteHome
 from src.domain.cte.repository import CteRepository
 from src.domain.destinatario.repository import DestinatarioRepository
+from src.domain.services.cte_generation_service import CteGenerationService
 from src.domain.transportadora.repository import TransportadoraRepository
 
 router = APIRouter()
@@ -54,13 +54,29 @@ async def generate_cte(
 ):
     payload = request.model_dump()
 
-    geo_errors = _validate_cfop_geography(payload, transportadora_repo, destinatario_repo)
+    service = CteGenerationService(transportadora_repo)
+    try:
+        transportadora = service.lookup_carrier(payload.get("Carrier", ""))
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "type": "about:blank",
+                "title": "Bad Request",
+                "status": 400,
+                "detail": str(e),
+            },
+        )
+
+    geo_errors = _validate_cfop_geography_with_entity(
+        payload, transportadora, destinatario_repo
+    )
     if geo_errors:
         errors = _parse_validation_errors("\n".join(geo_errors))
         return JSONResponse(status_code=422, content={"detail": errors})
 
     try:
-        entity = CteHome.generate(payload)
+        entity = service.generate_with_carrier(payload, transportadora)
     except ValueError as e:
         errors = _parse_validation_errors(str(e))
         return JSONResponse(status_code=422, content={"detail": errors})
@@ -68,20 +84,14 @@ async def generate_cte(
     return cte_to_response(entity)
 
 
-def _validate_cfop_geography(
+def _validate_cfop_geography_with_entity(
     payload: dict,
-    transportadora_repo: TransportadoraRepository,
+    transportadora: "Transportadora",
     destinatario_repo: DestinatarioRepository,
 ) -> list[str]:
-    """Resolve UFs from entities and validate CFOP geographic rules."""
-    carrier_cnpj = payload.get("Carrier")
+    """Validate CFOP geographic rules using already-looked-up Transportadora."""
     cnpj_dest = payload.get("CNPJ_Dest")
-
-    if not carrier_cnpj or not cnpj_dest:
-        return []
-
-    transportadora = transportadora_repo.find_by_cnpj(carrier_cnpj)
-    if not transportadora:
+    if not cnpj_dest:
         return []
 
     destinatario = destinatario_repo.find_by_cnpj(cnpj_dest)

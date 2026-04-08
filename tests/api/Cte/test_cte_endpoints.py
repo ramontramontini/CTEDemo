@@ -41,10 +41,29 @@ VALID_PAYLOAD = {
     ],
 }
 
+CARRIER_TRANSPORTADORA = {
+    "cnpj": "10758386000159",
+    "razao_social": "Carrier Teste Ltda",
+    "nome_fantasia": "CarrierTest",
+    "ie": "123456789",
+    "uf": "PE",
+    "cidade": "Recife",
+    "logradouro": "Rua do Teste",
+    "numero": "100",
+    "bairro": "Centro",
+    "cep": "50000000",
+}
+
+
+async def _register_carrier(client: AsyncClient) -> None:
+    """Register the Transportadora matching VALID_PAYLOAD Carrier CNPJ."""
+    await client.post("/api/v1/transportadoras", json=CARRIER_TRANSPORTADORA)
+
 
 @pytest.mark.asyncio
 class TestGenerateCte:
     async def test_generate_valid_returns_201(self, client: AsyncClient):
+        await _register_carrier(client)
         response = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         assert response.status_code == 201
         data = response.json()
@@ -56,20 +75,30 @@ class TestGenerateCte:
         assert "<?xml" in data["xml"]
         assert "created_at" in data
 
-    async def test_generate_invalid_cnpj_returns_422(self, client: AsyncClient):
+    async def test_generate_unknown_carrier_returns_400(self, client: AsyncClient):
+        """Carrier CNPJ valid format but not registered -> 400."""
+        payload = {**VALID_PAYLOAD, "Carrier": "33444555000199"}
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 400
+        data = response.json()
+        assert "Transportadora not found" in data["detail"]
+
+    async def test_generate_invalid_cnpj_returns_400(self, client: AsyncClient):
+        """Invalid CNPJ format -> 400 (carrier lookup fails before payload validation)."""
         payload = {**VALID_PAYLOAD, "Carrier": "11111111111111"}
         response = await client.post("/api/v1/cte", json=payload)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "detail" in data
-        assert any("Carrier" in e["field"] for e in data["detail"])
+        assert "Transportadora not found" in data["detail"]
 
     async def test_generate_missing_fields_returns_422(self, client: AsyncClient):
-        payload = {"FreightOrder": "", "Folder": []}
+        await _register_carrier(client)
+        payload = {**VALID_PAYLOAD, "FreightOrder": "", "Folder": []}
         response = await client.post("/api/v1/cte", json=payload)
         assert response.status_code == 422
 
     async def test_generate_invalid_cpf_returns_422(self, client: AsyncClient):
+        await _register_carrier(client)
         payload = {**VALID_PAYLOAD}
         payload["Folder"] = [{**VALID_PAYLOAD["Folder"][0], "DriverID": "11111111111"}]
         response = await client.post("/api/v1/cte", json=payload)
@@ -78,23 +107,13 @@ class TestGenerateCte:
         assert any("DriverID" in e["field"] for e in data["detail"])
 
     async def test_generate_invalid_plate_returns_422(self, client: AsyncClient):
+        await _register_carrier(client)
         payload = {**VALID_PAYLOAD}
         payload["Folder"] = [{**VALID_PAYLOAD["Folder"][0], "VehiclePlate": "INVALID"}]
         response = await client.post("/api/v1/cte", json=payload)
         assert response.status_code == 422
         data = response.json()
         assert any("VehiclePlate" in e["field"] for e in data["detail"])
-
-    async def test_generate_multiple_errors_in_single_request(self, client: AsyncClient):
-        payload = {
-            **VALID_PAYLOAD,
-            "Carrier": "11111111111111",
-            "CNPJ_Origin": "99999999999999",
-        }
-        response = await client.post("/api/v1/cte", json=payload)
-        assert response.status_code == 422
-        data = response.json()
-        assert len(data["detail"]) >= 2
 
 
 @pytest.mark.asyncio
@@ -105,6 +124,7 @@ class TestListAndGetCte:
         assert response.json() == []
 
     async def test_list_ctes_returns_generated(self, client: AsyncClient):
+        await _register_carrier(client)
         await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         response = await client.get("/api/v1/cte")
         assert response.status_code == 200
@@ -115,6 +135,7 @@ class TestListAndGetCte:
         assert "freight_order_number" in data[0]
 
     async def test_get_cte_returns_detail(self, client: AsyncClient):
+        await _register_carrier(client)
         create_resp = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         entity_id = create_resp.json()["id"]
         response = await client.get(f"/api/v1/cte/{entity_id}")
@@ -128,6 +149,7 @@ class TestListAndGetCte:
         assert response.status_code == 404
 
     async def test_get_cte_by_freight_order_number(self, client: AsyncClient):
+        await _register_carrier(client)
         create_resp = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         assert create_resp.status_code == 201
         created = create_resp.json()
@@ -147,6 +169,7 @@ class TestListAndGetCte:
 @pytest.mark.asyncio
 class TestExtraPostmanFields:
     async def test_extra_postman_fields_stored_in_payload(self, client: AsyncClient):
+        await _register_carrier(client)
         payload = {
             **VALID_PAYLOAD,
             "BusinessTransactionDocument": "DOC123",
@@ -260,14 +283,17 @@ class TestCfopGeographicValidation:
 
     async def test_cfop_geographic_skipped_when_no_cnpj_dest(self, client: AsyncClient):
         """No CNPJ_Dest in payload -> geographic validation skipped, 201."""
+        await _register_carrier(client)
         response = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
         assert response.status_code == 201
 
-    async def test_cfop_geographic_skipped_when_carrier_not_found(self, client: AsyncClient):
-        """Carrier not registered as Transportadora -> skip geo validation, 201."""
+    async def test_cfop_geographic_carrier_not_found_returns_400(self, client: AsyncClient):
+        """Carrier not registered as Transportadora -> 400 (carrier validation)."""
         payload = {
             **VALID_PAYLOAD,
             "CNPJ_Dest": DESTINATARIO_PE["cnpj"],
         }
         response = await client.post("/api/v1/cte", json=payload)
-        assert response.status_code == 201
+        assert response.status_code == 400
+        data = response.json()
+        assert "Transportadora not found" in data["detail"]

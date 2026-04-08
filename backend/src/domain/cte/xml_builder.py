@@ -4,16 +4,19 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from src.domain.cte.value_objects import AccessKey, FreightOrder
+from src.domain.transportadora.entity import Transportadora
 
 
-def build_cte_xml(fo: FreightOrder, key: AccessKey, timestamp: datetime) -> str:
+def build_cte_xml(
+    fo: FreightOrder, key: AccessKey, timestamp: datetime, transportadora: Transportadora
+) -> str:
     """Build simplified CT-e XML v4.00 structure."""
     cte_proc = ET.Element("cteProc", xmlns="http://www.portalfiscal.inf.br/cte", versao="4.00")
     cte = ET.SubElement(cte_proc, "CTe")
     inf_cte = ET.SubElement(cte, "infCte", versao="4.00", Id=f"CTe{key.value}")
 
     _build_identification(inf_cte, fo, key, timestamp)
-    _build_parties(inf_cte, fo)
+    _build_parties(inf_cte, fo, transportadora)
     _build_values(inf_cte, fo)
     _build_taxes(inf_cte, fo)
     _build_cargo_and_modal(inf_cte, fo)
@@ -39,9 +42,18 @@ def _build_identification(
     ET.SubElement(ide, "tpAmb").text = "2"
 
 
-def _build_parties(parent: ET.Element, fo: FreightOrder) -> None:
+def _build_parties(parent: ET.Element, fo: FreightOrder, transportadora: Transportadora) -> None:
     emit = ET.SubElement(parent, "emit")
     ET.SubElement(emit, "CNPJ").text = fo.carrier
+    ET.SubElement(emit, "IE").text = transportadora.ie
+    ET.SubElement(emit, "xNome").text = transportadora.razao_social
+    ender_emit = ET.SubElement(emit, "enderEmit")
+    ET.SubElement(ender_emit, "xLgr").text = transportadora.logradouro
+    ET.SubElement(ender_emit, "nro").text = transportadora.numero
+    ET.SubElement(ender_emit, "xBairro").text = transportadora.bairro
+    ET.SubElement(ender_emit, "xMun").text = transportadora.cidade
+    ET.SubElement(ender_emit, "UF").text = transportadora.uf
+    ET.SubElement(ender_emit, "CEP").text = transportadora.cep
     rem = ET.SubElement(parent, "rem")
     ET.SubElement(rem, "CNPJ").text = fo.cnpj_origin
 
