@@ -6,6 +6,7 @@ interface TransportadoraFormProps {
   onSubmit: (data: CreateTransportadoraRequest) => void;
   onCancel: () => void;
   isLoading: boolean;
+  error?: string | null;
 }
 
 const EMPTY_FORM: CreateTransportadoraRequest = {
@@ -21,7 +22,7 @@ const EMPTY_FORM: CreateTransportadoraRequest = {
   cep: '',
 };
 
-export function TransportadoraForm({ initial, onSubmit, onCancel, isLoading }: TransportadoraFormProps) {
+export function TransportadoraForm({ initial, onSubmit, onCancel, isLoading, error }: TransportadoraFormProps) {
   const [form, setForm] = useState<CreateTransportadoraRequest>(
     initial
       ? {
@@ -53,6 +54,7 @@ export function TransportadoraForm({ initial, onSubmit, onCancel, isLoading }: T
       <h2 className="text-lg font-semibold text-gray-900">
         {initial ? 'Editar Transportadora' : 'Nova Transportadora'}
       </h2>
+      {error && <p className="text-red-600 text-sm">{error}</p>}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">CNPJ *</label>

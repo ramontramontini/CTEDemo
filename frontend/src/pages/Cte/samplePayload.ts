@@ -1,8 +1,8 @@
 export const SAMPLE_PAYLOAD = {
   FreightOrder: "12345678901234",
   ERP: "SAP",
-  Carrier: "10758386000159",
-  CNPJ_Origin: "10758386000159",
+  Carrier: "16003754000135",
+  CNPJ_Origin: "16003754000135",
   Incoterms: "CIF",
   OperationType: "0",
   Folder: [

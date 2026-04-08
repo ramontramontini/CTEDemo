@@ -5,6 +5,7 @@ import {
   useUpdateTransportadora,
   useDeleteTransportadora,
 } from '@/api/hooks/useTransportadoras';
+import { extractErrorMessage } from '@/api/errorUtils';
 import type { Transportadora, CreateTransportadoraRequest } from '@/types';
 import { TransportadoraForm } from './TransportadoraForm';
 
@@ -16,16 +17,25 @@ export function TransportadoraPage() {
   const updateMutation = useUpdateTransportadora();
   const deleteMutation = useDeleteTransportadora();
   const [formMode, setFormMode] = useState<FormMode>({ type: 'closed' });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleCreate = (data: CreateTransportadoraRequest) => {
-    createMutation.mutate(data, { onSuccess: () => setFormMode({ type: 'closed' }) });
+    setFormError(null);
+    createMutation.mutate(data, {
+      onSuccess: () => setFormMode({ type: 'closed' }),
+      onError: (err) => setFormError(extractErrorMessage(err)),
+    });
   };
 
   const handleUpdate = (data: CreateTransportadoraRequest) => {
     if (formMode.type !== 'edit') return;
+    setFormError(null);
     updateMutation.mutate(
       { id: formMode.item.id, data },
-      { onSuccess: () => setFormMode({ type: 'closed' }) },
+      {
+        onSuccess: () => setFormMode({ type: 'closed' }),
+        onError: (err) => setFormError(extractErrorMessage(err)),
+      },
     );
   };
 
@@ -41,7 +51,7 @@ export function TransportadoraPage() {
   };
 
   if (isLoading) return <div className="text-gray-500">Carregando...</div>;
-  if (error) return <div className="text-red-500">Erro ao carregar transportadoras</div>;
+  if (error) return <div className="text-red-500">Erro ao carregar transportadoras: {extractErrorMessage(error)}</div>;
 
   return (
     <div className="space-y-4">
@@ -63,6 +73,7 @@ export function TransportadoraPage() {
           onSubmit={formMode.type === 'create' ? handleCreate : handleUpdate}
           onCancel={() => setFormMode({ type: 'closed' })}
           isLoading={createMutation.isPending || updateMutation.isPending}
+          error={formError}
         />
       )}
 

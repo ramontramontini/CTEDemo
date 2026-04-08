@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Cte, Remetente, CreateRemetenteRequest, UpdateRemetenteRequest, Destinatario, CreateDestinatarioRequest, UpdateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, UpdateTransportadoraRequest, ValidationError } from '../types';
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL: (import.meta.env.VITE_API_BASE_URL || '') + '/api/v1',
 });
 
 export const api = {

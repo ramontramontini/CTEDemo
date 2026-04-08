@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDestinatarios, useCreateDestinatario, useUpdateDestinatario, useDeleteDestinatario } from '@/api/hooks/useDestinatarios';
+import { extractErrorMessage } from '@/api/errorUtils';
 import { DestinatarioTable } from './components/DestinatarioTable';
 import { DestinatarioForm } from './components/DestinatarioForm';
 import type { Destinatario, CreateDestinatarioRequest, UpdateDestinatarioRequest } from '@/types';
@@ -14,19 +15,14 @@ export function DestinatarioPage() {
   const [formMode, setFormMode] = useState<FormMode>({ kind: 'closed' });
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isLoading) return <div className="text-gray-500">Loading...</div>;
-  if (error) return <div className="text-red-500">Error loading destinatarios</div>;
+  if (isLoading) return <div className="text-gray-500">Carregando...</div>;
+  if (error) return <div className="text-red-500">Erro ao carregar destinatarios: {extractErrorMessage(error)}</div>;
 
   function handleCreate(data: CreateDestinatarioRequest | UpdateDestinatarioRequest) {
     setFormError(null);
     createMutation.mutate(data as CreateDestinatarioRequest, {
       onSuccess: () => setFormMode({ kind: 'closed' }),
-      onError: (err) => {
-        const msg = (err as Record<string, unknown>).response
-          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao criar destinatario')
-          : 'Erro ao criar destinatario';
-        setFormError(String(msg));
-      },
+      onError: (err) => setFormError(extractErrorMessage(err)),
     });
   }
 
@@ -35,12 +31,7 @@ export function DestinatarioPage() {
     setFormError(null);
     updateMutation.mutate({ id: formMode.destinatario.id, data: data as UpdateDestinatarioRequest }, {
       onSuccess: () => setFormMode({ kind: 'closed' }),
-      onError: (err) => {
-        const msg = (err as Record<string, unknown>).response
-          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao atualizar destinatario')
-          : 'Erro ao atualizar destinatario';
-        setFormError(String(msg));
-      },
+      onError: (err) => setFormError(extractErrorMessage(err)),
     });
   }
 

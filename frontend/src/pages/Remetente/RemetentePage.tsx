@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRemetentes, useCreateRemetente, useUpdateRemetente, useDeleteRemetente } from '@/api/hooks/useRemetentes';
+import { extractErrorMessage } from '@/api/errorUtils';
 import { RemetenteTable } from './components/RemetenteTable';
 import { RemetenteForm } from './components/RemetenteForm';
 import type { Remetente, CreateRemetenteRequest, UpdateRemetenteRequest } from '@/types';
@@ -14,19 +15,14 @@ export function RemetentePage() {
   const [formMode, setFormMode] = useState<FormMode>({ kind: 'closed' });
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isLoading) return <div className="text-gray-500">Loading...</div>;
-  if (error) return <div className="text-red-500">Error loading remetentes</div>;
+  if (isLoading) return <div className="text-gray-500">Carregando...</div>;
+  if (error) return <div className="text-red-500">Erro ao carregar remetentes: {extractErrorMessage(error)}</div>;
 
   function handleCreate(data: CreateRemetenteRequest | UpdateRemetenteRequest) {
     setFormError(null);
     createMutation.mutate(data as CreateRemetenteRequest, {
       onSuccess: () => setFormMode({ kind: 'closed' }),
-      onError: (err) => {
-        const msg = (err as Record<string, unknown>).response
-          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao criar remetente')
-          : 'Erro ao criar remetente';
-        setFormError(String(msg));
-      },
+      onError: (err) => setFormError(extractErrorMessage(err)),
     });
   }
 
@@ -35,12 +31,7 @@ export function RemetentePage() {
     setFormError(null);
     updateMutation.mutate({ id: formMode.remetente.id, data: data as UpdateRemetenteRequest }, {
       onSuccess: () => setFormMode({ kind: 'closed' }),
-      onError: (err) => {
-        const msg = (err as Record<string, unknown>).response
-          ? ((err as Record<string, { data?: { detail?: string } }>).response?.data?.detail ?? 'Erro ao atualizar remetente')
-          : 'Erro ao atualizar remetente';
-        setFormError(String(msg));
-      },
+      onError: (err) => setFormError(extractErrorMessage(err)),
     });
   }
 

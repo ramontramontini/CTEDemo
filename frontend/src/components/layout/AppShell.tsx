@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 interface AppShellProps {
   children: ReactNode;
@@ -14,10 +15,10 @@ export function AppShell({ children }: AppShellProps) {
               <span className="text-white font-bold text-lg">CTEDemo</span>
               <div className="ml-10 flex items-baseline space-x-4">
 
-          <a href="/cte" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Cte</a>
-          <a href="/remetente" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Remetente</a>
-          <a href="/destinatario" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Destinatario</a>
-          <a href="/transportadora" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transportadora</a>
+          <Link to="/cte" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Cte</Link>
+          <Link to="/remetente" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Remetente</Link>
+          <Link to="/destinatario" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Destinatario</Link>
+          <Link to="/transportadora" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transportadora</Link>
               </div>
             </div>
           </div>

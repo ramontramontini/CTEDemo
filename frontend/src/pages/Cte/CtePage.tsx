@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useCtes, useGenerateCte } from '@/api/hooks/useCtes';
+import { extractErrorMessage } from '@/api/errorUtils';
 import type { Cte, ValidationError } from '@/types';
 import { CteForm } from './components/CteForm';
 import { CteResult } from './components/CteResult';
@@ -11,10 +12,12 @@ export function CtePage() {
   const generateMutation = useGenerateCte();
   const [lastResult, setLastResult] = useState<Cte | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[] | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const handleSubmit = (payload: Record<string, unknown>) => {
     setValidationErrors(null);
     setLastResult(null);
+    setGenerateError(null);
     generateMutation.mutate(payload, {
       onSuccess: (data) => {
         setLastResult(data);
@@ -24,6 +27,8 @@ export function CtePage() {
         const errs = (error as unknown as Record<string, unknown>).validationErrors as ValidationError[] | undefined;
         if (errs) {
           setValidationErrors(errs);
+        } else {
+          setGenerateError(extractErrorMessage(error));
         }
       },
     });
@@ -39,6 +44,10 @@ export function CtePage() {
 
       {validationErrors && <ValidationErrors errors={validationErrors} />}
 
+      {generateError && (
+        <p className="text-red-500 text-sm">{generateError}</p>
+      )}
+
       {lastResult && <CteResult cte={lastResult} />}
 
       <div>
@@ -46,7 +55,7 @@ export function CtePage() {
         {listLoading ? (
           <p className="text-gray-500">Carregando...</p>
         ) : listError ? (
-          <p className="text-red-500 text-sm">Erro ao carregar CT-es.</p>
+          <p className="text-red-500 text-sm">Erro ao carregar CT-es: {extractErrorMessage(listError)}</p>
         ) : (
           <CteList ctes={ctes || []} />
         )}
