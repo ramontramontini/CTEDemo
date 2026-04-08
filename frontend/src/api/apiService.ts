@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Cte, Remetente, CreateRemetenteRequest, UpdateRemetenteRequest, Destinatario, CreateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, UpdateTransportadoraRequest, ValidationError } from '../types';
+import type { Cte, Remetente, CreateRemetenteRequest, UpdateRemetenteRequest, Destinatario, CreateDestinatarioRequest, UpdateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, UpdateTransportadoraRequest, ValidationError } from '../types';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -36,6 +36,8 @@ export const api = {
   listDestinatarios: () => client.get<Destinatario[]>('/destinatarios').then(r => r.data),
   getDestinatario: (id: string) => client.get<Destinatario>(`/destinatarios/${id}`).then(r => r.data),
   createDestinatario: (data: CreateDestinatarioRequest) => client.post<Destinatario>('/destinatarios', data).then(r => r.data),
+  updateDestinatario: (id: string, data: UpdateDestinatarioRequest) => client.patch<Destinatario>(`/destinatarios/${id}`, data).then(r => r.data),
+  deleteDestinatario: (id: string) => client.delete(`/destinatarios/${id}`),
 
   // Transportadora endpoints
   listTransportadoras: () => client.get<Transportadora[]>('/transportadoras').then(r => r.data),
