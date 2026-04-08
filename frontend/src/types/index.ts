@@ -4,12 +4,16 @@
 
 export interface Cte {
   id: string;
-  access_key: string;
-  formatted_access_key: string;
-  freight_order_number: string;
+  cTeKey: string;
+  formattedAccessKey: string;
+  freightOrderNumber: string;
   status: string;
+  erp: string;
+  documentType: string;
+  totalFolders: number;
   xml: string;
-  created_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GenerateCteRequest {
@@ -22,9 +26,12 @@ export interface GenerateCteRequest {
   Folder: Record<string, unknown>[];
 }
 
-export interface ValidationError {
-  field: string;
-  message: string;
+export interface ProblemDetail {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  errors?: Record<string, string>;
 }
 
 export interface Remetente {

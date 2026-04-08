@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCtes, useGenerateCte } from '@/api/hooks/useCtes';
-import type { Cte, ValidationError } from '@/types';
+import type { Cte } from '@/types';
 import { CteForm } from './components/CteForm';
 import { CteResult } from './components/CteResult';
 import { CteList } from './components/CteList';
@@ -10,7 +10,7 @@ export function CtePage() {
   const { data: ctes, isLoading: listLoading, error: listError } = useCtes();
   const generateMutation = useGenerateCte();
   const [lastResult, setLastResult] = useState<Cte | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[] | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);
 
   const handleSubmit = (payload: Record<string, unknown>) => {
     setValidationErrors(null);
@@ -21,7 +21,7 @@ export function CtePage() {
         setValidationErrors(null);
       },
       onError: (error) => {
-        const errs = (error as unknown as Record<string, unknown>).validationErrors as ValidationError[] | undefined;
+        const errs = (error as unknown as Record<string, unknown>).validationErrors as Record<string, string> | undefined;
         if (errs) {
           setValidationErrors(errs);
         }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Cte, Remetente, CreateRemetenteRequest, UpdateRemetenteRequest, Destinatario, CreateDestinatarioRequest, UpdateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, UpdateTransportadoraRequest, ValidationError } from '../types';
+import type { Cte, Remetente, CreateRemetenteRequest, UpdateRemetenteRequest, Destinatario, CreateDestinatarioRequest, UpdateDestinatarioRequest, Transportadora, CreateTransportadoraRequest, UpdateTransportadoraRequest, ProblemDetail } from '../types';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -16,9 +16,9 @@ export const api = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 422) {
-        const detail = error.response.data?.detail as ValidationError[] | undefined;
+        const problem = error.response.data as ProblemDetail | undefined;
         const validationError = new Error('Validation failed');
-        (validationError as unknown as Record<string, unknown>).validationErrors = detail || [];
+        (validationError as unknown as Record<string, unknown>).validationErrors = problem?.errors || null;
         throw validationError;
       }
       throw error;

@@ -18,11 +18,11 @@ export function CteResult({ cte }: CteResultProps) {
       <div className="space-y-2 text-sm text-gray-700">
         <p>
           <span className="font-medium">Chave:</span>{' '}
-          <span className="font-mono">{cte.formatted_access_key}</span>
+          <span className="font-mono">{cte.formattedAccessKey}</span>
         </p>
         <p>
           <span className="font-medium">Criado em:</span>{' '}
-          {new Date(cte.created_at).toLocaleString('pt-BR')}
+          {new Date(cte.createdAt).toLocaleString('pt-BR')}
         </p>
       </div>
       <div className="mt-4">

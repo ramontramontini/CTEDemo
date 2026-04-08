@@ -18,14 +18,14 @@ export function CteList({ ctes }: CteListProps) {
         >
           <div className="space-y-1">
             <p className="font-mono text-sm text-gray-800">
-              {cte.formatted_access_key}
+              {cte.formattedAccessKey}
             </p>
             <div className="flex items-center gap-3 text-xs text-gray-500">
               <span className="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-800 uppercase">
                 {cte.status}
               </span>
-              <span>Pedido: {cte.freight_order_number}</span>
-              <span>{new Date(cte.created_at).toLocaleTimeString('pt-BR')}</span>
+              <span>Pedido: {cte.freightOrderNumber}</span>
+              <span>{new Date(cte.createdAt).toLocaleTimeString('pt-BR')}</span>
             </div>
           </div>
         </div>

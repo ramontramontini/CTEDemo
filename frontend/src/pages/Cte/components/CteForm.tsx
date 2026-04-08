@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import type { ValidationError } from '@/types';
 import { SAMPLE_PAYLOAD } from '../samplePayload';
 
 interface CteFormProps {
   onSubmit: (payload: Record<string, unknown>) => void;
   isLoading: boolean;
-  errors: ValidationError[] | null;
+  errors: Record<string, string> | null;
 }
 
 export function CteForm({ onSubmit, isLoading, errors }: CteFormProps) {

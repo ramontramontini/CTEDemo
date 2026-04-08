@@ -3,12 +3,16 @@ import { CteResult } from '@/pages/Cte/components/CteResult';
 
 const MOCK_CTE = {
   id: '550e8400-e29b-41d4-a716-446655440000',
-  access_key: '26251010758386000159570200000000011000000060',
-  formatted_access_key: '26 2510 10758386000159 57 020 000000001 1 00000006 0',
-  freight_order_number: '12345678901234',
-  status: 'gerado',
+  cTeKey: '26251010758386000159570200000000011000000060',
+  formattedAccessKey: '26 2510 10758386000159 57 020 000000001 1 00000006 0',
+  freightOrderNumber: '12345678901234',
+  status: 'Generated',
+  erp: 'SAP',
+  documentType: 'CT-e',
+  totalFolders: 1,
   xml: '<?xml version="1.0"?><CTe><infCte></infCte></CTe>',
-  created_at: '2026-04-07T19:59:15',
+  createdAt: '2026-04-07T19:59:15',
+  updatedAt: '2026-04-07T19:59:15',
 };
 
 describe('CteResult', () => {
@@ -18,9 +22,9 @@ describe('CteResult', () => {
     expect(screen.getByText(/26 2510 1075/)).toBeInTheDocument();
   });
 
-  it('renders status badge as GERADO', () => {
+  it('renders status badge as Generated', () => {
     render(<CteResult cte={MOCK_CTE} />);
-    expect(screen.getByText(/gerado/i)).toBeInTheDocument();
+    expect(screen.getByText(/generated/i)).toBeInTheDocument();
   });
 
   it('renders creation timestamp', () => {

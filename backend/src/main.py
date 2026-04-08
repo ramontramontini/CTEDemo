@@ -7,7 +7,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.exceptions import APIException
+from fastapi.exceptions import RequestValidationError
+
+from src.api.exceptions import APIException, problem_detail_response
 from src.api.error_handlers import register_error_handlers
 
 from src.api.v1.ctes import router as cte_router
@@ -41,10 +43,16 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(APIException)
     async def api_exception_handler(request: Request, exc: APIException) -> JSONResponse:
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail},
-        )
+        return problem_detail_response(exc.status_code, exc.detail)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        errors = {}
+        for err in exc.errors():
+            field = ".".join(str(loc) for loc in err["loc"] if loc != "body")
+            errors[field] = err["msg"]
+        detail = "; ".join(f"{k}: {v}" for k, v in errors.items()) if errors else str(exc)
+        return problem_detail_response(422, detail, errors=errors)
 
     @app.get("/api/v1/health")
     async def health_check():

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_cte_repository
-from src.api.exceptions import NotFoundError
+from src.api.exceptions import NotFoundError, problem_detail_response
 from src.api.v1.schemas.cte_schemas import GenerateCteRequest
 from src.api.v1.serializers.cte_serializer import cte_to_response
 from src.domain.cte.home import CteHome
@@ -44,15 +44,16 @@ async def generate_cte(
         entity = CteHome.generate(payload)
     except ValueError as e:
         errors = _parse_validation_errors(str(e))
-        return JSONResponse(status_code=422, content={"detail": errors})
+        detail = "; ".join(f"{k}: {v}" for k, v in errors.items())
+        return problem_detail_response(422, detail, errors=errors)
     repo.save(entity)
     return cte_to_response(entity)
 
 
-def _parse_validation_errors(error_message: str) -> list[dict[str, str]]:
-    """Parse multi-line validation errors into field-level error list."""
+def _parse_validation_errors(error_message: str) -> dict[str, str]:
+    """Parse multi-line validation errors into field→message dict."""
     lines = error_message.strip().split("\n")
-    errors = []
+    errors: dict[str, str] = {}
     for line in lines:
         line = line.strip()
         if not line:
@@ -60,15 +61,11 @@ def _parse_validation_errors(error_message: str) -> list[dict[str, str]]:
         if "—" in line:
             parts = line.split("—", 1)
             field = parts[0].strip().rstrip(" .")
-            message = line
         elif ":" in line:
             parts = line.split(":", 1)
             field = parts[0].strip()
-            message = line
         else:
             field = "general"
-            message = line
-        # Clean field path: extract the dotted path
-        field = field.split(".")[-1] if "." not in field else field
-        errors.append({"field": field, "message": message})
+        field = field if "." in field else field.split(".")[-1]
+        errors[field] = line
     return errors
