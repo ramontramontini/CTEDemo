@@ -81,13 +81,27 @@ class FreightOrderTax:
         tax_type = data.get("TaxType", "")
         if not tax_type:
             raise ValueError("TaxType é obrigatório")
+        base = round(float(data.get("Base", 0)), 2)
+        rate = round(float(data.get("Rate", 0)), 4)
+        value = round(float(data.get("Value", 0)), 2)
+        reduced_base = round(float(data.get("ReducedBase", 0)), 2)
+
+        if base > 0 and rate > 0:
+            expected = round(base * rate / 100, 2)
+            if abs(expected - value) > 0.01:
+                raise ValueError(
+                    f"Valor do imposto não confere: base={base}, "
+                    f"alíquota={rate}, valor esperado={expected}, "
+                    f"valor informado={value}"
+                )
+
         return cls(
             tax_type=tax_type,
-            base=float(data.get("Base", 0)),
-            rate=float(data.get("Rate", 0)),
-            value=float(data.get("Value", 0)),
+            base=base,
+            rate=rate,
+            value=value,
             tax_code=str(data.get("TaxCode", "")),
-            reduced_base=float(data.get("ReducedBase", 0)),
+            reduced_base=reduced_base,
         )
 
 
@@ -122,7 +136,7 @@ class FreightOrderFolder:
         if not reference_number:
             errors.append(f"{prefix}.ReferenceNumber é obrigatório")
 
-        net_value = float(data.get("NetValue", 0))
+        net_value = round(float(data.get("NetValue", 0)), 2)
         if net_value <= 0:
             errors.append(f"{prefix}.NetValue deve ser maior que zero")
 

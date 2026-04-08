@@ -142,6 +142,16 @@ class TestFreightOrderFolder:
         with pytest.raises(ValueError, match=r"Folder\[2\]"):
             FreightOrderFolder.from_dict(data, index=2)
 
+    def test_net_value_rounded_to_2dp(self):
+        data = {**VALID_FOLDER, "NetValue": 1500.1234}
+        folder = FreightOrderFolder.from_dict(data, index=0)
+        assert folder.net_value == 1500.12
+
+    def test_string_net_value_parsed_and_rounded(self):
+        data = {**VALID_FOLDER, "NetValue": "1702.4000"}
+        folder = FreightOrderFolder.from_dict(data, index=0)
+        assert folder.net_value == 1702.40
+
 
 class TestFreightOrderTax:
     """FreightOrderTax VO tests."""
@@ -155,3 +165,39 @@ class TestFreightOrderTax:
         data = {**VALID_FOLDER["Tax"][0], "TaxType": ""}
         with pytest.raises(ValueError, match="TaxType"):
             FreightOrderTax.from_dict(data)
+
+    def test_tax_base_rounded_to_2dp(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": 100.1234, "Value": 12.01}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.base == 100.12
+
+    def test_tax_value_rounded_to_2dp(self):
+        data = {**VALID_FOLDER["Tax"][0], "Value": 180.1234, "Base": 1501.03, "Rate": 12.00}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.value == 180.12
+
+    def test_tax_rate_rounded_to_4dp(self):
+        data = {**VALID_FOLDER["Tax"][0], "Rate": 12.12345, "Base": 1500.00, "Value": 181.85}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.rate == 12.1235
+
+    def test_string_tax_base_parsed(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": "1500.0000"}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.base == 1500.00
+
+    def test_tax_value_mismatch_rejected(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": 100, "Rate": 12, "Value": 15}
+        with pytest.raises(ValueError, match="imposto não confere"):
+            FreightOrderTax.from_dict(data)
+
+    def test_tax_value_within_tolerance_accepted(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": 100, "Rate": 12.5, "Value": 12.50}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.value == 12.50
+
+    def test_tax_zero_exempt_accepted(self):
+        data = {**VALID_FOLDER["Tax"][0], "Base": 0, "Rate": 0, "Value": 0}
+        tax = FreightOrderTax.from_dict(data)
+        assert tax.base == 0
+        assert tax.value == 0
