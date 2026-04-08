@@ -30,3 +30,4 @@ temp/memory-state.json
 # OS
 .DS_Store
 Thumbs.db
+logs/
