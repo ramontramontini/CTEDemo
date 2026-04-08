@@ -7,7 +7,7 @@
 CT-e (Conhecimento de Transporte Eletrônico) — Brazilian electronic transport document generation.
 
 - **Entity:** `cte/entity.py` — Aggregate root with `access_key`, `freight_order_number`, `status`, `xml`, `original_payload`. Behavior: `is_gerado()`, `formatted_access_key()`
-- **Home:** `cte/home.py` — `CteHome.generate(payload, transportadora, remetente?, destinatario?)` orchestrates FreightOrder validation → AccessKey generation → XML build → entity creation. Requires `Transportadora` for `<emit>`, optionally accepts `Remetente` for `<rem>` enrichment and `Destinatario` for `<dest>` section
+- **Home:** `cte/home.py` — `CteHome.generate(payload, transportadora, repo, remetente?, destinatario?)` checks for duplicate FreightOrder (raises `DuplicateFreightOrderError`), then orchestrates FreightOrder validation → AccessKey generation → XML build → post-gen well-formedness check → entity creation. Requires `Transportadora` for `<emit>`, optionally accepts `Remetente` for `<rem>` enrichment and `Destinatario` for `<dest>` section
 - **Value Objects:** `cte/value_objects.py` — `AccessKey` (44-digit with mod11 DV), `FreightOrder`/`FreightOrderFolder`/`FreightOrderTax` (input parsing + validation)
 - **XML Builder:** `cte/xml_builder.py` — Builds CT-e XML v4.00 structure: `<ide>`, `<compl>`, `<emit>` (Transportadora), `<rem>` (Remetente), `<dest>` (Destinatario), `<vPrest>`, `<imp>` (per-tax-type: ICMS with CST groups, COFINS, PIS + vTotTrib), `<infCTeNorm>` (cargo, NF-e refs, modal with vehicle + trailer plates)
 - **CFOP Validator:** `cte/cfop_validator.py` — Geographic validation: 5xxx requires same-state, 6xxx requires cross-state origin/destination

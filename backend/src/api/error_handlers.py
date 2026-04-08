@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from src.domain.cte.errors import CteNotFoundError
+from src.domain.cte.errors import CteNotFoundError, DuplicateFreightOrderError
 from src.domain.remetente.errors import DuplicateCnpjError as RemetenteDuplicateCnpjError, RemetenteNotFoundError
 from src.domain.destinatario.errors import DestinatarioNotFoundError, DuplicateCnpjError as DestinatarioDuplicateCnpjError
 from src.domain.transportadora.errors import TransportadoraNotFoundError
@@ -36,3 +36,7 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(DestinatarioDuplicateCnpjError)
     async def handle_destinatario_duplicate_cnpj(request: Request, exc: DestinatarioDuplicateCnpjError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @app.exception_handler(DuplicateFreightOrderError)
+    async def handle_duplicate_freight_order(request: Request, exc: DuplicateFreightOrderError) -> JSONResponse:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})

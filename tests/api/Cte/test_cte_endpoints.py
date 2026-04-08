@@ -167,6 +167,26 @@ class TestListAndGetCte:
 
 
 @pytest.mark.asyncio
+class TestDuplicateFreightOrder:
+    async def test_duplicate_freight_order_returns_400(self, client: AsyncClient):
+        response1 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+        assert response1.status_code == 201
+        response2 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+        assert response2.status_code == 400
+        data = response2.json()
+        assert data["detail"] == "Freight order '12345678901234' already exists"
+
+    async def test_duplicate_does_not_block_different_freight_order(self, client: AsyncClient):
+        response1 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+        assert response1.status_code == 201
+        response2 = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+        assert response2.status_code == 400
+        different_payload = {**VALID_PAYLOAD, "FreightOrder": "99999999999999"}
+        response3 = await client.post("/api/v1/cte", json=different_payload)
+        assert response3.status_code == 201
+
+
+@pytest.mark.asyncio
 class TestExtraPostmanFields:
     async def test_extra_postman_fields_stored_in_payload(self, client: AsyncClient):
         await _register_carrier(client)

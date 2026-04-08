@@ -2,11 +2,14 @@
 
 import random
 import threading
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.domain.cte.entity import Cte
 from src.domain.cte.enums import CteStatus
+from src.domain.cte.errors import CteXmlBuildError, DuplicateFreightOrderError
+from src.domain.cte.repository import CteRepository
 from src.domain.cte.value_objects import AccessKey, FreightOrder
 from src.domain.cte.xml_builder import build_cte_xml
 from src.domain.destinatario.entity import Destinatario
@@ -43,6 +46,7 @@ class CteHome:
     def generate(
         payload: dict[str, Any],
         transportadora: Transportadora,
+        repo: CteRepository,
         remetente: Optional[Remetente] = None,
         destinatario: Optional[Destinatario] = None,
     ) -> Cte:
@@ -51,10 +55,18 @@ class CteHome:
         Args:
             payload: Raw freight order dict from API request.
             transportadora: Looked-up Transportadora entity for XML enrichment.
+            repo: CteRepository for duplicate freight order check.
             remetente: Optional Remetente entity for <rem> enrichment.
             destinatario: Optional Destinatario entity for <dest> section.
+
+        Raises DuplicateFreightOrderError if a CT-e with the same
+        FreightOrder number already exists in the repository.
         """
         freight_order = FreightOrder.from_dict(payload)
+
+        existing = repo.find_by_freight_order_number(freight_order.freight_order)
+        if existing is not None:
+            raise DuplicateFreightOrderError(freight_order.freight_order)
 
         now = datetime.now(timezone.utc)
         aamm = now.strftime("%y%m")
@@ -71,6 +83,11 @@ class CteHome:
         )
 
         xml = build_cte_xml(freight_order, access_key, now, transportadora, remetente, destinatario)
+
+        try:
+            ET.fromstring(xml.encode("utf-8"))
+        except ET.ParseError as e:
+            raise CteXmlBuildError(str(e)) from e
 
         return Cte._create_raw(
             access_key=access_key.value,

@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 from src.domain.cte.entity import Cte
 from src.domain.cte.home import CteHome
+from src.domain.cte.repository import CteRepository
 from src.domain.destinatario.entity import Destinatario
 from src.domain.destinatario.repository import DestinatarioRepository
 from src.domain.remetente.entity import Remetente
@@ -32,7 +33,7 @@ class CteGenerationService:
         self._remetente_repo = remetente_repo
         self._destinatario_repo = destinatario_repo
 
-    def generate(self, payload: dict[str, Any]) -> Cte:
+    def generate(self, payload: dict[str, Any], repo: CteRepository) -> Cte:
         """Generate a CT-e after resolving all related entities."""
         carrier_cnpj = payload.get("Carrier", "")
         transportadora = self.lookup_carrier(carrier_cnpj)
@@ -40,17 +41,18 @@ class CteGenerationService:
         remetente = self._lookup_remetente(payload.get("CNPJ_Origin", ""))
         destinatario = self._lookup_destinatario(payload.get("CNPJ_Dest", ""))
 
-        return CteHome.generate(payload, transportadora, remetente, destinatario)
+        return CteHome.generate(payload, transportadora, repo, remetente, destinatario)
 
     def generate_with_carrier(
         self,
         payload: dict[str, Any],
         transportadora: Transportadora,
+        repo: CteRepository,
         remetente: Optional[Remetente] = None,
         destinatario: Optional[Destinatario] = None,
     ) -> Cte:
         """Generate a CT-e with already-looked-up entities."""
-        return CteHome.generate(payload, transportadora, remetente, destinatario)
+        return CteHome.generate(payload, transportadora, repo, remetente, destinatario)
 
     def lookup_carrier(self, cnpj: str) -> Transportadora:
         """Look up Transportadora by CNPJ. Raises ValueError if not found."""

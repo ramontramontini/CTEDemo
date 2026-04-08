@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
+    get_cte_publisher,
     get_cte_repository,
     get_destinatario_repository,
     get_nfe_repository,
@@ -16,6 +17,7 @@ from src.api.exceptions import NotFoundError
 from src.api.v1.schemas.cte_schemas import GenerateCteRequest
 from src.api.v1.serializers.cte_serializer import cte_to_response
 from src.domain.cte.cfop_validator import CfopGeographicValidator
+from src.domain.cte.publisher import CtePublisher
 from src.domain.cte.repository import CteRepository
 from src.domain.destinatario.repository import DestinatarioRepository
 from src.domain.nfe.repository import NfeRepository
@@ -58,6 +60,7 @@ async def generate_cte(
     destinatario_repo: DestinatarioRepository = Depends(get_destinatario_repository),
     remetente_repo: RemetenteRepository = Depends(get_remetente_repository),
     nfe_repo: NfeRepository = Depends(get_nfe_repository),
+    publisher: CtePublisher = Depends(get_cte_publisher),
 ):
     payload = request.model_dump()
 
@@ -90,11 +93,12 @@ async def generate_cte(
     destinatario = destinatario_repo.find_by_cnpj(payload.get("CNPJ_Dest", "")) if payload.get("CNPJ_Dest") else None
 
     try:
-        entity = service.generate_with_carrier(payload, transportadora, remetente, destinatario)
+        entity = service.generate_with_carrier(payload, transportadora, repo, remetente, destinatario)
     except ValueError as e:
         errors = _parse_validation_errors(str(e))
         return JSONResponse(status_code=422, content={"detail": errors})
     repo.save(entity)
+    publisher.publish(entity.freight_order_number, entity.access_key, payload)
     return cte_to_response(entity, warnings=nfe_warnings)
 
 
@@ -159,7 +163,6 @@ def _parse_validation_errors(error_message: str) -> list[dict[str, str]]:
         else:
             field = "general"
             message = line
-        # Clean field path: extract the dotted path
         field = field.split(".")[-1] if "." not in field else field
         errors.append({"field": field, "message": message})
     return errors

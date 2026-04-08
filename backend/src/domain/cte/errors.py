@@ -14,3 +14,11 @@ class CteValidationError(Exception):
 
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class DuplicateFreightOrderError(Exception):
+    """Raised when a CT-e with the same FreightOrder already exists."""
+
+    def __init__(self, freight_order: str):
+        self.freight_order = freight_order
+        super().__init__(f"Freight order '{freight_order}' already exists")
