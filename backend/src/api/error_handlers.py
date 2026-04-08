@@ -4,8 +4,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from src.domain.cte.errors import CteNotFoundError
-from src.domain.remetente.errors import DuplicateCnpjError, RemetenteNotFoundError
-from src.domain.destinatario.errors import DestinatarioNotFoundError
+from src.domain.remetente.errors import DuplicateCnpjError as RemetenteDuplicateCnpjError, RemetenteNotFoundError
+from src.domain.destinatario.errors import DestinatarioNotFoundError, DuplicateCnpjError as DestinatarioDuplicateCnpjError
 from src.domain.transportadora.errors import TransportadoraNotFoundError
 
 
@@ -29,6 +29,10 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_transportadora_not_found(request: Request, exc: TransportadoraNotFoundError) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
-    @app.exception_handler(DuplicateCnpjError)
-    async def handle_duplicate_cnpj(request: Request, exc: DuplicateCnpjError) -> JSONResponse:
+    @app.exception_handler(RemetenteDuplicateCnpjError)
+    async def handle_remetente_duplicate_cnpj(request: Request, exc: RemetenteDuplicateCnpjError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @app.exception_handler(DestinatarioDuplicateCnpjError)
+    async def handle_destinatario_duplicate_cnpj(request: Request, exc: DestinatarioDuplicateCnpjError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})

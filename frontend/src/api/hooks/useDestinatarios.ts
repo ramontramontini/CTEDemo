@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../apiService';
 import { queryKeys } from './queryKeys';
-import type { CreateDestinatarioRequest } from '../../types';
+import type { CreateDestinatarioRequest, UpdateDestinatarioRequest } from '../../types';
 
 export function useDestinatarios() {
   return useQuery({
@@ -22,6 +22,26 @@ export function useCreateDestinatario() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateDestinatarioRequest) => api.createDestinatario(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.destinatarios.all });
+    },
+  });
+}
+
+export function useUpdateDestinatario() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateDestinatarioRequest }) => api.updateDestinatario(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.destinatarios.all });
+    },
+  });
+}
+
+export function useDeleteDestinatario() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDestinatario(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.destinatarios.all });
     },

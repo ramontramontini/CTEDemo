@@ -71,18 +71,46 @@ export interface UpdateRemetenteRequest {
 
 export interface Destinatario {
   id: string;
-  name: string;
+  cnpj: string | null;
+  cpf: string | null;
+  razao_social: string;
+  nome_fantasia: string;
+  ie: string;
+  uf: string;
+  cidade: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cep: string;
   status: string;
   created_at: string;
   updated_at: string | null;
 }
 
 export interface CreateDestinatarioRequest {
-  name: string;
+  cnpj?: string;
+  cpf?: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  ie?: string;
+  uf: string;
+  cidade: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cep: string;
 }
 
 export interface UpdateDestinatarioRequest {
-  name?: string;
+  razao_social?: string;
+  nome_fantasia?: string;
+  ie?: string;
+  uf?: string;
+  cidade?: string;
+  logradouro?: string;
+  numero?: string;
+  bairro?: string;
+  cep?: string;
 }
 
 export interface Transportadora {
