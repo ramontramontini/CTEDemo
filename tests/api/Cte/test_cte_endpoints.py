@@ -170,3 +170,104 @@ class TestExtraPostmanFields:
         assert op["DocumentType"] == "CT-e"
         assert op["FleetType"] == "OWN"
         assert op["TransportType"] == "ROAD"
+
+
+CARRIER_CNPJ = "10758386000159"
+
+TRANSPORTADORA_PE = {
+    "cnpj": CARRIER_CNPJ,
+    "razao_social": "Transportes PE Ltda",
+    "nome_fantasia": "TransPE",
+    "ie": "123456789",
+    "uf": "PE",
+    "cidade": "Recife",
+    "logradouro": "Rua da Aurora",
+    "numero": "100",
+    "bairro": "Boa Vista",
+    "cep": "50060010",
+}
+
+DESTINATARIO_PE = {
+    "cnpj": "44555666000181",
+    "razao_social": "Dest PE Ltda",
+    "nome_fantasia": "DestPE",
+    "ie": "987654321",
+    "uf": "PE",
+    "cidade": "Recife",
+    "logradouro": "Av Boa Viagem",
+    "numero": "200",
+    "bairro": "Boa Viagem",
+    "cep": "51030300",
+}
+
+DESTINATARIO_SP = {
+    "cnpj": "55666777000181",
+    "razao_social": "Dest SP Ltda",
+    "nome_fantasia": "DestSP",
+    "ie": "111222333",
+    "uf": "SP",
+    "cidade": "Sao Paulo",
+    "logradouro": "Av Paulista",
+    "numero": "500",
+    "bairro": "Bela Vista",
+    "cep": "01310100",
+}
+
+
+@pytest.mark.asyncio
+class TestCfopGeographicValidation:
+    """CFOP geographic validation — AC1-AC4."""
+
+    async def test_cfop_geographic_same_state_6xxx_returns_422(self, client: AsyncClient):
+        """Same-state origin/dest with interstate CFOP 6352 -> 422."""
+        await client.post("/api/v1/transportadoras", json=TRANSPORTADORA_PE)
+        await client.post("/api/v1/destinatarios", json=DESTINATARIO_PE)
+        payload = {
+            **VALID_PAYLOAD,
+            "CNPJ_Dest": DESTINATARIO_PE["cnpj"],
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "CFOP": "6352"}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+        data = response.json()
+        assert any("requer estados diferentes" in e["message"] for e in data["detail"])
+
+    async def test_cfop_geographic_cross_state_5xxx_returns_422(self, client: AsyncClient):
+        """Cross-state origin/dest with intrastate CFOP 5352 -> 422."""
+        await client.post("/api/v1/transportadoras", json=TRANSPORTADORA_PE)
+        await client.post("/api/v1/destinatarios", json=DESTINATARIO_SP)
+        payload = {
+            **VALID_PAYLOAD,
+            "CNPJ_Dest": DESTINATARIO_SP["cnpj"],
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "CFOP": "5352"}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+        data = response.json()
+        assert any("requer mesmo estado" in e["message"] for e in data["detail"])
+
+    async def test_cfop_geographic_valid_passes(self, client: AsyncClient):
+        """Cross-state with interstate CFOP 6352 -> 201."""
+        await client.post("/api/v1/transportadoras", json=TRANSPORTADORA_PE)
+        await client.post("/api/v1/destinatarios", json=DESTINATARIO_SP)
+        payload = {
+            **VALID_PAYLOAD,
+            "CNPJ_Dest": DESTINATARIO_SP["cnpj"],
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "CFOP": "6352"}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 201
+
+    async def test_cfop_geographic_skipped_when_no_cnpj_dest(self, client: AsyncClient):
+        """No CNPJ_Dest in payload -> geographic validation skipped, 201."""
+        response = await client.post("/api/v1/cte", json=VALID_PAYLOAD)
+        assert response.status_code == 201
+
+    async def test_cfop_geographic_skipped_when_carrier_not_found(self, client: AsyncClient):
+        """Carrier not registered as Transportadora -> skip geo validation, 201."""
+        payload = {
+            **VALID_PAYLOAD,
+            "CNPJ_Dest": DESTINATARIO_PE["cnpj"],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 201
