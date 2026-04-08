@@ -36,7 +36,7 @@ VALID_PAYLOAD = {
                     "ReducedBase": 0,
                 }
             ],
-            "RelatedNFE": ["12345678901234567890123456789012345678901234"],
+            "RelatedNFE": ["35230410758386000159550010000000011000000015"],
         }
     ],
 }
@@ -297,3 +297,65 @@ class TestCfopGeographicValidation:
         assert response.status_code == 400
         data = response.json()
         assert "Transportadora not found" in data["detail"]
+
+
+# Seed NF-e keys from MemoryNfeRepository
+AUTHORIZED_NFE_KEY = "35230410758386000159550010000000011000000015"
+CANCELED_NFE_KEY = "35230410758386000159550010000000021000000022"
+DIVERGENT_NFE_KEY = "31230499888777000166550010000000031000000039"
+
+
+@pytest.mark.asyncio
+class TestNfeValidation:
+    """NF-e validation — AC2, AC3, AC4."""
+
+    async def test_generate_with_valid_nfe_succeeds(self, client: AsyncClient):
+        """Authorized NF-e key -> 201."""
+        await _register_carrier(client)
+        payload = {
+            **VALID_PAYLOAD,
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "RelatedNFE": [AUTHORIZED_NFE_KEY]}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["warnings"] == []
+
+    async def test_generate_with_unknown_nfe_returns_400(self, client: AsyncClient):
+        """Unknown NF-e key -> 400."""
+        await _register_carrier(client)
+        unknown_key = "9" * 44
+        payload = {
+            **VALID_PAYLOAD,
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "RelatedNFE": [unknown_key]}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 400
+        data = response.json()
+        assert "NF-e not found" in data["detail"]
+        assert unknown_key in data["detail"]
+
+    async def test_generate_with_canceled_nfe_returns_400(self, client: AsyncClient):
+        """Canceled NF-e key -> 400."""
+        await _register_carrier(client)
+        payload = {
+            **VALID_PAYLOAD,
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "RelatedNFE": [CANCELED_NFE_KEY]}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 400
+        data = response.json()
+        assert "NF-e canceled" in data["detail"]
+
+    async def test_generate_with_divergent_emitter_returns_warning(self, client: AsyncClient):
+        """NF-e emitter != CNPJ_Origin -> 201 with warning."""
+        await _register_carrier(client)
+        payload = {
+            **VALID_PAYLOAD,
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "RelatedNFE": [DIVERGENT_NFE_KEY]}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert len(data["warnings"]) == 1
+        assert "differs from CNPJ_Origin" in data["warnings"][0]

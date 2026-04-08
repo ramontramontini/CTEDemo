@@ -7,11 +7,13 @@ from src.domain.cte.repository import CteRepository
 from src.domain.remetente.repository import RemetenteRepository
 from src.domain.destinatario.repository import DestinatarioRepository
 from src.domain.transportadora.repository import TransportadoraRepository
+from src.domain.nfe.repository import NfeRepository
 
 from src.infrastructure.database.repositories.memory.cte_repository import MemoryCteRepository
 from src.infrastructure.database.repositories.memory.remetente_repository import MemoryRemetenteRepository
 from src.infrastructure.database.repositories.memory.destinatario_repository import MemoryDestinatarioRepository
 from src.infrastructure.database.repositories.memory.transportadora_repository import MemoryTransportadoraRepository
+from src.infrastructure.database.repositories.memory.nfe_repository import MemoryNfeRepository
 
 
 class RepositoryProvider:
@@ -38,6 +40,11 @@ class RepositoryProvider:
     def get_transportadora_repository(self) -> TransportadoraRepository:
         if self._data_mode == "memory":
             return MemoryTransportadoraRepository(self._memory_state)
+        raise NotImplementedError("DB repositories not yet implemented")
+
+    def get_nfe_repository(self) -> NfeRepository:
+        if self._data_mode == "memory":
+            return MemoryNfeRepository(self._memory_state)
         raise NotImplementedError("DB repositories not yet implemented")
 
 

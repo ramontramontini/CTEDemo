@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from src.api.dependencies import (
     get_cte_repository,
     get_destinatario_repository,
+    get_nfe_repository,
     get_transportadora_repository,
 )
 from src.api.exceptions import NotFoundError
@@ -16,7 +17,9 @@ from src.api.v1.serializers.cte_serializer import cte_to_response
 from src.domain.cte.cfop_validator import CfopGeographicValidator
 from src.domain.cte.repository import CteRepository
 from src.domain.destinatario.repository import DestinatarioRepository
+from src.domain.nfe.repository import NfeRepository
 from src.domain.services.cte_generation_service import CteGenerationService
+from src.domain.services.nfe_validation_service import NfeValidationService
 from src.domain.transportadora.repository import TransportadoraRepository
 
 router = APIRouter()
@@ -51,6 +54,7 @@ async def generate_cte(
     repo: CteRepository = Depends(get_cte_repository),
     transportadora_repo: TransportadoraRepository = Depends(get_transportadora_repository),
     destinatario_repo: DestinatarioRepository = Depends(get_destinatario_repository),
+    nfe_repo: NfeRepository = Depends(get_nfe_repository),
 ):
     payload = request.model_dump()
 
@@ -68,6 +72,10 @@ async def generate_cte(
             },
         )
 
+    nfe_warnings = _validate_nfe_keys(payload, nfe_repo)
+    if isinstance(nfe_warnings, JSONResponse):
+        return nfe_warnings
+
     geo_errors = _validate_cfop_geography_with_entity(
         payload, transportadora, destinatario_repo
     )
@@ -81,7 +89,31 @@ async def generate_cte(
         errors = _parse_validation_errors(str(e))
         return JSONResponse(status_code=422, content={"detail": errors})
     repo.save(entity)
-    return cte_to_response(entity)
+    return cte_to_response(entity, warnings=nfe_warnings)
+
+
+def _validate_nfe_keys(payload: dict, nfe_repo: NfeRepository) -> list[str] | JSONResponse:
+    """Validate all NF-e keys across all folders. Returns warnings list or 400 JSONResponse."""
+    all_nfe_keys: list[str] = []
+    for folder in payload.get("Folder", []):
+        all_nfe_keys.extend(folder.get("RelatedNFE", []))
+
+    if not all_nfe_keys:
+        return []
+
+    nfe_service = NfeValidationService(nfe_repo)
+    try:
+        return nfe_service.validate_keys(all_nfe_keys, payload.get("CNPJ_Origin", ""))
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "type": "about:blank",
+                "title": "Bad Request",
+                "status": 400,
+                "detail": str(e),
+            },
+        )
 
 
 def _validate_cfop_geography_with_entity(

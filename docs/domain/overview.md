@@ -40,11 +40,21 @@ Cross-aggregate immutable types in `domain/shared/`:
 - **Home:** `transportadora/home.py`
 - **Repository:** `transportadora/repository.py`
 
+### Nfe
+
+NF-e (Nota Fiscal Eletrônica) — mock repository for related NF-e validation during CT-e generation.
+
+- **Entity:** `nfe/entity.py` — Lightweight frozen dataclass: `key` (44-digit access key), `status` ("authorized"/"canceled"), `emitter_cnpj`
+- **Repository:** `nfe/repository.py` — Abstract interface with `find_by_key()`, `find_all()`
+- **Memory Impl:** 3 seed records — authorized (matching CNPJ), canceled, authorized (divergent emitter)
+
 ### Services (Cross-Aggregate Orchestration)
 
 - **CteGenerationService:** `services/cte_generation_service.py` — Orchestrates Transportadora lookup + CT-e generation. Validates carrier CNPJ exists in Transportadora registry before delegating to `CteHome.generate()`. Keeps Home infrastructure-free per L1 cross-aggregate rules
+- **NfeValidationService:** `services/nfe_validation_service.py` — Validates NF-e keys exist and are authorized. Unknown/canceled keys raise ValueError (400). CNPJ divergence between NF-e emitter and CNPJ_Origin returns non-blocking warnings
 
 ## Dependencies
 
 - **Cte → Transportadora:** CT-e generation requires a registered Transportadora (carrier lookup via `CteGenerationService`)
 - **Cte → Destinatario:** CFOP geographic validation requires Destinatario UF (optional — skipped when no `CNPJ_Dest`)
+- **Cte → Nfe:** Related NF-e validation — keys in `RelatedNFE` checked against NF-e repository (unknown/canceled → 400, emitter CNPJ divergence → warning)
