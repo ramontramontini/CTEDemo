@@ -16,6 +16,7 @@ playwright-report/
 test-results/
 
 # Environment
+.env
 .env.local
 temp/
 temp/memory-state.json
