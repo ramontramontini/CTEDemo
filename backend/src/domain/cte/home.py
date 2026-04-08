@@ -10,6 +10,7 @@ from src.domain.cte.entity import Cte
 from src.domain.cte.enums import CteStatus
 from src.domain.cte.errors import CteXmlBuildError, DuplicateFreightOrderError
 from src.domain.cte.repository import CteRepository
+from src.domain.cte.validation import validate_generated_cte
 from src.domain.cte.value_objects import AccessKey, FreightOrder
 from src.domain.cte.xml_builder import build_cte_xml
 from src.domain.destinatario.entity import Destinatario
@@ -88,6 +89,16 @@ class CteHome:
             ET.fromstring(xml.encode("utf-8"))
         except ET.ParseError as e:
             raise CteXmlBuildError(str(e)) from e
+
+        validation_errors = validate_generated_cte(access_key.value, xml)
+        if validation_errors:
+            return Cte._create_raw(
+                access_key=access_key.value,
+                freight_order_number=freight_order.freight_order,
+                status=CteStatus.ERRO,
+                xml=xml,
+                original_payload=payload,
+            )
 
         return Cte._create_raw(
             access_key=access_key.value,

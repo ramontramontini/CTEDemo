@@ -24,6 +24,13 @@ class TestMemoryCtePublisher:
         assert events[1]["freight_order_number"] == "FO-002"
         assert events[2]["freight_order_number"] == "FO-003"
 
+    def test_published_events_returns_copy(self):
+        publisher = MemoryCtePublisher()
+        publisher.publish("FO-001", "AK-001", {})
+        events = publisher.published_events()
+        events.clear()
+        assert len(publisher.published_events()) == 1
+
     def test_published_event_contains_required_fields(self):
         publisher = MemoryCtePublisher()
         publisher.publish("FO-001", "AK-001", {"data": "test"})

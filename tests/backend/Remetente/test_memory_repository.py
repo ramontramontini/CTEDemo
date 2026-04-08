@@ -85,7 +85,7 @@ class TestMemoryRemetenteRepository:
         all_entities = self.repo.find_all()
         assert len(all_entities) == 2
         cnpjs = {e.cnpj for e in all_entities}
-        assert "11222333000181" in cnpjs
+        assert "03026527000183" in cnpjs
         assert "11444777000161" in cnpjs
 
     def test_seed_if_empty_does_not_duplicate(self):

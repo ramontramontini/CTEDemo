@@ -84,7 +84,13 @@ class TestFreightOrder:
 
     def test_cnpj_origin_required(self):
         payload = {**VALID_PAYLOAD, "CNPJ_Origin": ""}
-        with pytest.raises(ValueError, match="CNPJ_Origin"):
+        with pytest.raises(ValueError, match="CNPJ_Origin é obrigatório"):
+            FreightOrder.from_dict(payload)
+
+    def test_missing_cnpj_origin_key_rejected(self):
+        payload = {**VALID_PAYLOAD}
+        del payload["CNPJ_Origin"]
+        with pytest.raises(ValueError, match="CNPJ_Origin é obrigatório"):
             FreightOrder.from_dict(payload)
 
     def test_invalid_incoterms_rejected(self):
@@ -216,6 +222,21 @@ class TestFreightOrderFolder:
     def test_trailer_plate_invalid_format_rejected(self):
         data = {**VALID_FOLDER, "TrailerPlate": ["INVALID"]}
         with pytest.raises(ValueError, match="TrailerPlate"):
+            FreightOrderFolder.from_dict(data, index=0)
+
+    def test_trailer_plate_empty_strings_filtered(self):
+        data = {**VALID_FOLDER, "TrailerPlate": ["BWE9E13", "", ""]}
+        folder = FreightOrderFolder.from_dict(data, index=0)
+        assert folder.trailer_plates == ("BWE9E13",)
+
+    def test_trailer_plate_all_empty_valid(self):
+        data = {**VALID_FOLDER, "TrailerPlate": ["", "", ""]}
+        folder = FreightOrderFolder.from_dict(data, index=0)
+        assert folder.trailer_plates == ()
+
+    def test_trailer_plate_mix_valid_invalid_reports_all(self):
+        data = {**VALID_FOLDER, "TrailerPlate": ["BWE9E13", "BAD", "ABC1234"]}
+        with pytest.raises(ValueError, match="TrailerPlate.*1.*Placa inválida"):
             FreightOrderFolder.from_dict(data, index=0)
 
     def test_vehicle_axles_required(self):

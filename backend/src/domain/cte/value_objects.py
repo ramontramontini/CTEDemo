@@ -40,11 +40,11 @@ class AccessKey:
         numero_str = str(numero).zfill(9)
 
         base = f"{uf}{aamm}{cnpj}{mod}{serie}{numero_str}{tipo}{codigo}"
-        dv = cls._calc_dv(base)
+        dv = cls.calc_dv(base)
         return cls(value=f"{base}{dv}")
 
     @staticmethod
-    def _calc_dv(digits_43: str) -> int:
+    def calc_dv(digits_43: str) -> int:
         weights = [2, 3, 4, 5, 6, 7, 8, 9]
         total = 0
         for i, digit in enumerate(reversed(digits_43)):
@@ -150,6 +150,42 @@ class FreightOrderFolder:
         errors: list[str] = []
         prefix = f"Folder[{index}]"
 
+        folder_number, reference_number, net_value, plate_value = (
+            cls._validate_header_fields(data, prefix, errors)
+        )
+        cfop, driver_id, vehicle_axles, equipment_type, weight = (
+            cls._validate_transport_fields(data, prefix, errors)
+        )
+        tax_list, related_nfe = cls._validate_doc_fields(data, prefix, errors)
+        validated_trailer_plates = cls._validate_trailer_plates(data, prefix, errors)
+
+        if errors:
+            raise ValueError("\n".join(errors))
+
+        taxes: list[FreightOrderTax] = []
+        for k, t in enumerate(tax_list):
+            taxes.append(FreightOrderTax.from_dict(t, prefix=f"{prefix}.Tax[{k}]."))
+
+        return cls(
+            folder_number=folder_number,
+            reference_number=reference_number,
+            net_value=net_value,
+            vehicle_plate=plate_value,
+            trailer_plates=tuple(validated_trailer_plates),
+            vehicle_axles=vehicle_axles,
+            equipment_type=equipment_type,
+            weight=weight,
+            cfop=cfop,
+            driver_id=driver_id,
+            cancel=bool(data.get("Cancel", False)),
+            taxes=tuple(taxes),
+            related_nfe=tuple(related_nfe),
+        )
+
+    @staticmethod
+    def _validate_header_fields(
+        data: dict[str, Any], prefix: str, errors: list[str],
+    ) -> tuple[str, str, float, str]:
         folder_number = data.get("FolderNumber", "")
         if not folder_number:
             errors.append(f"{prefix}.FolderNumber é obrigatório")
@@ -176,6 +212,12 @@ class FreightOrderFolder:
             )
             plate_value = plate_raw
 
+        return folder_number, reference_number, net_value, plate_value
+
+    @staticmethod
+    def _validate_transport_fields(
+        data: dict[str, Any], prefix: str, errors: list[str],
+    ) -> tuple[str, str, str, str, float]:
         cfop = data.get("CFOP", "")
         if cfop not in VALID_CFOPS:
             errors.append(
@@ -187,20 +229,6 @@ class FreightOrderFolder:
             Cpf(driver_id)
         except ValueError as e:
             errors.append(f"{prefix}.DriverID — {e}")
-
-        tax_list = data.get("Tax", [])
-        if not tax_list:
-            errors.append(f"{prefix}.Tax é obrigatório em cada Folder")
-
-        related_nfe = data.get("RelatedNFE", [])
-        if not related_nfe:
-            errors.append(f"{prefix}.RelatedNFE é obrigatório em cada Folder")
-        else:
-            for j, key in enumerate(related_nfe):
-                if not isinstance(key, str) or len(key) != 44 or not key.isdigit():
-                    errors.append(
-                        f"{prefix}.RelatedNFE[{j}] deve ser chave de 44 dígitos numéricos"
-                    )
 
         vehicle_axles = str(data.get("VehicleAxles", ""))
         if not vehicle_axles:
@@ -218,39 +246,45 @@ class FreightOrderFolder:
         if weight <= 0 and f"{prefix}.Weight deve ser numérico" not in errors:
             errors.append(f"{prefix}.Weight deve ser maior que zero")
 
+        return cfop, driver_id, vehicle_axles, equipment_type, weight
+
+    @staticmethod
+    def _validate_doc_fields(
+        data: dict[str, Any], prefix: str, errors: list[str],
+    ) -> tuple[list, list]:
+        tax_list = data.get("Tax", [])
+        if not tax_list:
+            errors.append(f"{prefix}.Tax é obrigatório em cada Folder")
+
+        related_nfe = data.get("RelatedNFE", [])
+        if not related_nfe:
+            errors.append(f"{prefix}.RelatedNFE é obrigatório em cada Folder")
+        else:
+            for j, key in enumerate(related_nfe):
+                if not isinstance(key, str) or len(key) != 44 or not key.isdigit():
+                    errors.append(
+                        f"{prefix}.RelatedNFE[{j}] deve ser chave de 44 dígitos numéricos"
+                    )
+
+        return tax_list, related_nfe
+
+    @staticmethod
+    def _validate_trailer_plates(
+        data: dict[str, Any], prefix: str, errors: list[str],
+    ) -> list[str]:
         raw_trailer_plates = data.get("TrailerPlate", [])
-        validated_trailer_plates: list[str] = []
+        validated: list[str] = []
         for j, tp in enumerate(raw_trailer_plates):
+            if not tp:
+                continue
             try:
-                validated_trailer_plates.append(VehiclePlate(tp).value)
+                validated.append(VehiclePlate(tp).value)
             except ValueError:
                 errors.append(
                     f"{prefix}.TrailerPlate[{j}] — Placa inválida — "
                     f"formato aceito: ABC1234 ou ABC1D23"
                 )
-
-        if errors:
-            raise ValueError("\n".join(errors))
-
-        taxes: list[FreightOrderTax] = []
-        for k, t in enumerate(tax_list):
-            taxes.append(FreightOrderTax.from_dict(t, prefix=f"{prefix}.Tax[{k}]."))
-
-        return cls(
-            folder_number=folder_number,
-            reference_number=reference_number,
-            net_value=net_value,
-            vehicle_plate=plate_value,
-            trailer_plates=tuple(validated_trailer_plates),
-            vehicle_axles=vehicle_axles,
-            equipment_type=equipment_type,
-            weight=weight,
-            cfop=cfop,
-            driver_id=driver_id,
-            cancel=bool(data.get("Cancel", False)),
-            taxes=tuple(taxes),
-            related_nfe=tuple(related_nfe),
-        )
+        return validated
 
 
 @dataclass(frozen=True)

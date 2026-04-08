@@ -13,9 +13,9 @@ from src.infrastructure.database.repositories.memory.state import MemoryState
 
 _SEED_DATA = [
     {
-        "cnpj": "62144175000120",
-        "razao_social": "Transportadora ABC Ltda",
-        "nome_fantasia": "ABC Transportes",
+        "cnpj": "16003754000135",
+        "razao_social": "Transportadora Postman Ltda",
+        "nome_fantasia": "Postman Transportes",
         "ie": "110042490114",
         "uf": "SP",
         "cidade": "Sao Paulo",

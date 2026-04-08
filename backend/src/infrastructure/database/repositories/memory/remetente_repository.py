@@ -78,9 +78,9 @@ class MemoryRemetenteRepository(RemetenteRepository):
             return
         seeds = [
             RemetenteHome.create(
-                cnpj="11222333000181",
-                razao_social="Empresa ABC Ltda",
-                nome_fantasia="ABC",
+                cnpj="03026527000183",
+                razao_social="Remetente Postman Ltda",
+                nome_fantasia="Postman Rem",
                 ie="123456789",
                 uf="SP",
                 cidade="Sao Paulo",

@@ -14,7 +14,7 @@ from src.infrastructure.database.repositories.memory.transportadora_repository i
 VALID_PAYLOAD = {
     "FreightOrder": "12345678901234",
     "ERP": "SAP",
-    "Carrier": "62144175000120",
+    "Carrier": "16003754000135",
     "CNPJ_Origin": "10758386000159",
     "Incoterms": "CIF",
     "OperationType": "0",
@@ -60,7 +60,7 @@ class TestCteGenerationService:
     def test_generate_with_registered_carrier(self):
         """Service looks up Transportadora by CNPJ and generates CT-e."""
         transportadora_repo, cte_repo = self._make_repos()
-        # Seed repo has CNPJ 11222333000181
+        # Seed repo has CNPJ 16003754000135
         service = CteGenerationService(transportadora_repo)
         cte = service.generate(VALID_PAYLOAD, cte_repo)
         assert cte.status == CteStatus.GERADO
@@ -80,7 +80,7 @@ class TestCteGenerationService:
         service = CteGenerationService(transportadora_repo)
         cte = service.generate(VALID_PAYLOAD, cte_repo)
         # Verify XML contains Transportadora data (xNome from entity)
-        assert "Transportadora ABC Ltda" in cte.xml
+        assert "Transportadora Postman Ltda" in cte.xml
 
     def test_service_orchestrates_lookup_then_generate(self):
         """Service coordinates: lookup Transportadora -> generate CT-e."""
@@ -90,7 +90,7 @@ class TestCteGenerationService:
         cte = service.generate(VALID_PAYLOAD, cte_repo)
         assert cte is not None
         # Delete the carrier, next call fails
-        transportadora = transportadora_repo.find_by_cnpj("62144175000120")
+        transportadora = transportadora_repo.find_by_cnpj("16003754000135")
         transportadora_repo.delete(transportadora.id)
         with pytest.raises(ValueError, match="Transportadora not found"):
             service.generate(VALID_PAYLOAD, cte_repo)
