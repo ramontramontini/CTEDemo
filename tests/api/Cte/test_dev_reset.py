@@ -81,7 +81,7 @@ async def test_reset_reseeds_all_entities(client):
     assert len(rem.json()) == 2
 
     dest = await client.get("/api/v1/destinatarios")
-    assert len(dest.json()) == 2
+    assert len(dest.json()) == 3
 
     transp = await client.get("/api/v1/transportadoras")
     assert len(transp.json()) == 2

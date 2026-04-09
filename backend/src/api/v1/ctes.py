@@ -19,6 +19,7 @@ from src.api.v1.serializers.cte_serializer import cte_to_response
 from src.domain.cte.cfop_validator import CfopGeographicValidator
 from src.domain.cte.publisher import CtePublisher
 from src.domain.cte.repository import CteRepository
+from src.domain.cte.value_objects import FreightOrder
 from src.domain.destinatario.repository import DestinatarioRepository
 from src.domain.nfe.repository import NfeRepository
 from src.domain.remetente.repository import RemetenteRepository
@@ -63,6 +64,14 @@ async def generate_cte(
     publisher: CtePublisher = Depends(get_cte_publisher),
 ):
     payload = request.model_dump()
+
+    # VO validation first — catches format errors (CNPJ, CPF, plate, NFe key)
+    # as 422 before business lookups that would return 400
+    try:
+        FreightOrder.from_dict(payload)
+    except ValueError as e:
+        errors = _parse_validation_errors(str(e))
+        return JSONResponse(status_code=422, content={"detail": errors})
 
     service = CteGenerationService(transportadora_repo, remetente_repo, destinatario_repo)
     try:

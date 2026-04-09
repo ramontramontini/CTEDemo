@@ -81,19 +81,19 @@ class TestGenerateCte:
 
     async def test_generate_unknown_carrier_returns_400(self, client: AsyncClient):
         """Carrier CNPJ valid format but not registered -> 400."""
-        payload = {**VALID_PAYLOAD, "Carrier": "33444555000199"}
+        payload = {**VALID_PAYLOAD, "Carrier": "33444555000181"}
         response = await client.post("/api/v1/cte", json=payload)
         assert response.status_code == 400
         data = response.json()
         assert "Transportadora not found" in data["detail"]
 
-    async def test_generate_invalid_cnpj_returns_400(self, client: AsyncClient):
-        """Invalid CNPJ format -> 400 (carrier lookup fails before payload validation)."""
+    async def test_generate_invalid_cnpj_returns_422(self, client: AsyncClient):
+        """Invalid CNPJ format -> 422 (VO validation catches before carrier lookup)."""
         payload = {**VALID_PAYLOAD, "Carrier": "11111111111111"}
         response = await client.post("/api/v1/cte", json=payload)
-        assert response.status_code == 400
+        assert response.status_code == 422
         data = response.json()
-        assert "Transportadora not found" in data["detail"]
+        assert any("CNPJ" in e["message"] for e in data["detail"])
 
     async def test_generate_missing_fields_returns_422(self, client: AsyncClient):
         await _register_carrier(client)
@@ -420,6 +420,76 @@ class TestSchemaValidation:
         response = await client.post("/api/v1/cte", json=payload)
         # Should not be rejected as unknown field — CNPJ_Dest is declared
         assert response.status_code != 422 or "CNPJ_Dest" not in str(response.json())
+
+
+@pytest.mark.asyncio
+class TestRegressionValidationOrdering:
+    """Regression 2026-04-09.23-21-29 — format errors (422) must fire before business lookups (400).
+
+    Bug: ctes.py ran carrier/NFe lookups before FreightOrder.from_dict VO validation,
+    causing format errors to return 400 instead of 422.
+    """
+
+    async def test_regression_2026_04_09_23_21_29_invalid_carrier_cnpj(self, client: AsyncClient):
+        """Bad CNPJ check digit → 422 (not 400 carrier-not-found)."""
+        payload = {**VALID_PAYLOAD, "Carrier": "16003754000199"}  # bad check digit
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+        data = response.json()
+        assert any("CNPJ" in e["message"] for e in data["detail"])
+
+    async def test_regression_2026_04_09_23_21_29_invalid_nfe_key(self, client: AsyncClient):
+        """Short NFe key (5 digits) → 422 (not 400 NFe-not-found)."""
+        await _register_carrier(client)
+        payload = {
+            **VALID_PAYLOAD,
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "RelatedNFE": ["12345"]}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+        data = response.json()
+        assert any("44" in e["message"] or "dígitos" in e["message"] for e in data["detail"])
+
+    async def test_regression_2026_04_09_23_21_29_cfop_same_state(self, client: AsyncClient):
+        """CFOP 6352 (interstate) + same-state carrier/dest → 422."""
+        carrier_rj = {
+            "cnpj": "33014556000196",
+            "razao_social": "Log Express SA",
+            "nome_fantasia": "LogExpress",
+            "ie": "77868647",
+            "uf": "RJ",
+            "cidade": "Rio de Janeiro",
+            "logradouro": "Rua da Assembleia",
+            "numero": "50",
+            "bairro": "Centro",
+            "cep": "20011000",
+        }
+        dest_rj = {
+            "cnpj": "77888999000181",
+            "razao_social": "Distribuidora Rio Ltda",
+            "nome_fantasia": "DistRio",
+            "ie": "456789123",
+            "uf": "RJ",
+            "cidade": "Rio de Janeiro",
+            "logradouro": "Rua do Ouvidor",
+            "numero": "30",
+            "bairro": "Centro",
+            "cep": "20040030",
+        }
+        await client.post("/api/v1/transportadoras", json=carrier_rj)
+        await client.post("/api/v1/destinatarios", json=dest_rj)
+        payload = {
+            **VALID_PAYLOAD,
+            "FreightOrder": "CFOP6XXX_SAME_STATE",
+            "Carrier": "33014556000196",
+            "CNPJ_Origin": "11444777000161",
+            "CNPJ_Dest": "77888999000181",
+            "Folder": [{**VALID_PAYLOAD["Folder"][0], "CFOP": "6352"}],
+        }
+        response = await client.post("/api/v1/cte", json=payload)
+        assert response.status_code == 422
+        data = response.json()
+        assert any("requer estados diferentes" in e["message"] for e in data["detail"])
 
 
 @pytest.mark.asyncio

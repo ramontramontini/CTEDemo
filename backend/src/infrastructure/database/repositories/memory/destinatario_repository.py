@@ -72,7 +72,7 @@ class MemoryDestinatarioRepository(DestinatarioRepository):
         return None
 
     def seed_if_empty(self) -> None:
-        """Seed with geo-diverse entries: PE (same as carrier) + SP (different UF)."""
+        """Seed with geo-diverse entries: PE + SP + RJ (for CFOP geo validation scenarios)."""
         collection = self._state.get_collection(self._collection_name)
         if collection:
             return
@@ -109,6 +109,23 @@ class MemoryDestinatarioRepository(DestinatarioRepository):
                 "numero": "1000",
                 "bairro": "Bela Vista",
                 "cep": "01310100",
+                "status": "active",
+                "created_at": now,
+                "updated_at": None,
+            },
+            {
+                "id": str(uuid4()),
+                "cnpj": "77888999000181",
+                "cpf": None,
+                "razao_social": "Distribuidora Rio Ltda",
+                "nome_fantasia": "DistRio",
+                "ie": "456789123",
+                "uf": "RJ",
+                "cidade": "Rio de Janeiro",
+                "logradouro": "Rua do Ouvidor",
+                "numero": "30",
+                "bairro": "Centro",
+                "cep": "20040030",
                 "status": "active",
                 "created_at": now,
                 "updated_at": None,

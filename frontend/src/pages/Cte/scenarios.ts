@@ -24,6 +24,7 @@ const CARRIER_RJ = '33014556000196'; // Log Express SA, UF: RJ
 const REMETENTE_SP = '03026527000183'; // Remetente Postman Ltda, UF: SP
 const REMETENTE_RJ = '11444777000161'; // Industria XYZ SA, UF: RJ
 const DEST_PE = '44555666000181'; // Comercio Recife Ltda, UF: PE
+const DEST_RJ = '77888999000181'; // Distribuidora Rio Ltda, UF: RJ
 const NFE_AUTHORIZED = '35251003026527000183550010013119001683587366';
 const NFE_AUTHORIZED_2 = '35251003026527000183550010013119001683587367';
 const NFE_CANCELED = '35230410758386000159550010000000021000000022';
@@ -567,14 +568,15 @@ export const SCENARIOS: Scenario[] = [
     id: 'cfop-6xxx-same-state',
     name: 'CFOP 6xxx intraestadual',
     description:
-      'CFOP 6352 exige estados diferentes, mas Carrier (RJ) e Remetente/Origin (RJ) sao iguais',
+      'CFOP 6352 exige estados diferentes, mas Carrier (RJ) e Destinatario (RJ) sao iguais',
     category: 'cfop_error',
     expectedStatus: 422,
     expectedOutcome: '422 — CFOP 6xxx requer estados diferentes origem/destino',
     payload: {
       ...basePayload('SC19000000000019'),
       Carrier: CARRIER_RJ, // RJ
-      CNPJ_Origin: REMETENTE_RJ, // RJ — same state as carrier
+      CNPJ_Origin: REMETENTE_RJ, // RJ
+      CNPJ_Dest: DEST_RJ, // RJ — same state as carrier → triggers CFOP 6xxx error
       Folder: [
         {
           FolderNumber: '001',
