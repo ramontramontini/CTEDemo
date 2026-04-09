@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CteForm } from '@/pages/Cte/components/CteForm';
-import { vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -58,5 +58,31 @@ describe('CteForm', () => {
   it('shows loading state on button when isLoading', () => {
     render(<CteForm {...{ ...defaultProps, isLoading: true }} />, { wrapper });
     expect(screen.getByRole('button', { name: /gerando/i })).toBeDisabled();
+  });
+
+  it('shows expected outcome info bar when expectedOutcome is provided', () => {
+    render(
+      <CteForm {...defaultProps} expectedOutcome="201 — CT-e gerado com sucesso" />,
+      { wrapper },
+    );
+    expect(screen.getByTestId('expected-outcome')).toHaveTextContent(
+      'Esperado: 201 — CT-e gerado com sucesso',
+    );
+  });
+
+  it('does not show info bar when expectedOutcome is null', () => {
+    render(<CteForm {...defaultProps} expectedOutcome={null} />, { wrapper });
+    expect(screen.queryByTestId('expected-outcome')).not.toBeInTheDocument();
+  });
+
+  it('loads external JSON into textarea when externalJson changes', () => {
+    const { rerender } = render(<CteForm {...defaultProps} />, { wrapper });
+    rerender(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <CteForm {...defaultProps} externalJson='{"FreightOrder":"EXT"}' />
+      </QueryClientProvider>,
+    );
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(textarea.value).toContain('EXT');
   });
 });

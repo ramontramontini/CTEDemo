@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ValidationError } from '@/types';
 import { SAMPLE_PAYLOAD } from '../samplePayload';
 
@@ -6,11 +6,20 @@ interface CteFormProps {
   onSubmit: (payload: Record<string, unknown>) => void;
   isLoading: boolean;
   errors: ValidationError[] | null;
+  externalJson?: string | null;
+  expectedOutcome?: string | null;
 }
 
-export function CteForm({ onSubmit, isLoading, errors }: CteFormProps) {
+export function CteForm({ onSubmit, isLoading, errors, externalJson, expectedOutcome }: CteFormProps) {
   const [json, setJson] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (externalJson != null) {
+      setJson(externalJson);
+      setParseError(null);
+    }
+  }, [externalJson]);
 
   const handleSubmit = () => {
     setParseError(null);
@@ -40,6 +49,11 @@ export function CteForm({ onSubmit, isLoading, errors }: CteFormProps) {
       />
       {parseError && (
         <p className="mt-2 text-sm text-red-600">{parseError}</p>
+      )}
+      {expectedOutcome && (
+        <p className="mt-2 text-sm text-blue-700 bg-blue-50 rounded px-3 py-2" data-testid="expected-outcome">
+          Esperado: {expectedOutcome}
+        </p>
       )}
       <div className="mt-4 flex justify-between">
         <button
