@@ -9,6 +9,7 @@ import { CteResult } from './components/CteResult';
 import { CteList } from './components/CteList';
 import { ValidationErrors } from './components/ValidationErrors';
 import { ScenarioPanel } from './components/ScenarioPanel';
+import { useScenarioRunner } from './hooks/useScenarioRunner';
 
 export function CtePage() {
   const { data: ctes, isLoading: listLoading, error: listError } = useCtes();
@@ -18,6 +19,8 @@ export function CtePage() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [externalJson, setExternalJson] = useState<string | null>(null);
+
+  const { results, runningId, isRunningAll, runOne, runAll } = useScenarioRunner(SCENARIOS);
 
   const handleSubmit = (payload: Record<string, unknown>) => {
     setValidationErrors(null);
@@ -69,6 +72,11 @@ export function CtePage() {
         scenarios={SCENARIOS}
         onSelect={handleScenarioSelect}
         selectedId={selectedScenario?.id ?? null}
+        onRunOne={runOne}
+        onRunAll={runAll}
+        results={results}
+        runningId={runningId}
+        isRunningAll={isRunningAll}
       />
 
       <div>

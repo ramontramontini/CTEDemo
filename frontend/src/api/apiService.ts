@@ -39,6 +39,9 @@ export const api = {
   updateDestinatario: (id: string, data: UpdateDestinatarioRequest) => client.patch<Destinatario>(`/destinatarios/${id}`, data).then(r => r.data),
   deleteDestinatario: (id: string) => client.delete(`/destinatarios/${id}`),
 
+  // Dev endpoints
+  resetData: () => client.post('/dev/reset-data').then(r => r.data),
+
   // Transportadora endpoints
   listTransportadoras: () => client.get<Transportadora[]>('/transportadoras').then(r => r.data),
   getTransportadora: (id: string) => client.get<Transportadora>(`/transportadoras/${id}`).then(r => r.data),

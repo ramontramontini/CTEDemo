@@ -1,11 +1,24 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useResetData } from '@/api/hooks/useResetData';
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const resetMutation = useResetData();
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  const handleReset = () => {
+    resetMutation.mutate(undefined, {
+      onSuccess: () => {
+        setShowFeedback(true);
+        setTimeout(() => setShowFeedback(false), 2000);
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-gray-800">
@@ -20,6 +33,19 @@ export function AppShell({ children }: AppShellProps) {
           <Link to="/destinatario" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Destinatario</Link>
           <Link to="/transportadora" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transportadora</Link>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {showFeedback && (
+                <span className="text-green-400 text-sm">Dados resetados</span>
+              )}
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={resetMutation.isPending}
+                className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white px-3 py-1.5 rounded text-sm font-medium"
+              >
+                {resetMutation.isPending ? 'Resetando...' : 'Limpar Dados'}
+              </button>
             </div>
           </div>
         </div>

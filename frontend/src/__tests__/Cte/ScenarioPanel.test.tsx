@@ -89,7 +89,7 @@ describe('ScenarioPanel', () => {
         selectedId="happy-path"
       />
     );
-    const card = screen.getByText('Cenario feliz').closest('button');
+    const card = screen.getByText('Cenario feliz').closest('div.rounded-lg');
     expect(card?.className).toMatch(/ring/);
   });
 

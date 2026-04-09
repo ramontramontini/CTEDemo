@@ -14,6 +14,7 @@ from src.api.v1.ctes import router as cte_router
 from src.api.v1.remetentes import router as remetente_router
 from src.api.v1.destinatarios import router as destinatario_router
 from src.api.v1.transportadoras import router as transportadora_router
+from src.api.v1.dev import router as dev_router
 
 structlog.configure(
     processors=[
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(remetente_router, prefix="/api/v1", tags=["remetente"])
     app.include_router(destinatario_router, prefix="/api/v1", tags=["destinatario"])
     app.include_router(transportadora_router, prefix="/api/v1", tags=["transportadora"])
+    app.include_router(dev_router, prefix="/api/v1", tags=["dev"])
 
     register_error_handlers(app)
 
