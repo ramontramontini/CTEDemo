@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Scenario } from '../scenarios';
 import { SCENARIO_CATEGORIES } from '../scenarios';
 import type { ScenarioResult } from '../hooks/useScenarioRunner';
+import { ScenarioReportModal } from './ScenarioReportModal';
 
 interface ScenarioPanelProps {
   scenarios: Scenario[];
@@ -37,6 +38,8 @@ export function ScenarioPanel({
   runningId = null,
   isRunningAll = false,
 }: ScenarioPanelProps) {
+  const [showReport, setShowReport] = useState(false);
+
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     config: SCENARIO_CATEGORIES[cat],
@@ -53,9 +56,18 @@ export function ScenarioPanel({
         <h2 className="text-xl font-semibold text-gray-900">Cenarios de Teste</h2>
         <div className="flex items-center gap-4">
           {totalCount > 0 && (
-            <span className={`text-sm font-medium ${passedCount === totalCount ? 'text-green-600' : 'text-orange-600'}`}>
-              {passedCount}/{totalCount} passaram
-            </span>
+            <>
+              <span className={`text-sm font-medium ${passedCount === totalCount ? 'text-green-600' : 'text-orange-600'}`}>
+                {passedCount}/{totalCount} passaram
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm font-medium"
+              >
+                Ver Relatorio
+              </button>
+            </>
           )}
           {onRunAll && (
             <button
@@ -91,6 +103,14 @@ export function ScenarioPanel({
           </div>
         ))}
       </div>
+
+      {showReport && (
+        <ScenarioReportModal
+          scenarios={scenarios}
+          results={results}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   );
 }
