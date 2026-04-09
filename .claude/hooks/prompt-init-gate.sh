@@ -114,10 +114,8 @@ if [ -n "$ACTIVE_STORY" ]; then
   ACTIVE_STORY_CONTEXT="WARNING: Agent '$AGENT_ID' has active story: [$ACTIVE_STATUS] $active_title ($active_sid). Use /resume to continue or /shelve to release."
 fi
 
-# Step 6: Generate launch.json if missing (fail-open)
-if [ ! -f "$PROJECT_DIR/.claude/launch.json" ]; then
-  bash "$PROJECT_DIR/scripts/generate-launch-json.sh" 2>/dev/null || true
-fi
+# Step 6: Regenerate launch.json from .env (always — prevents port staleness)
+bash "$PROJECT_DIR/scripts/generate-launch-json.sh" 2>/dev/null || true
 
 # ─── Set marker ────────────────────────────────────────────
 touch "$MARKER"

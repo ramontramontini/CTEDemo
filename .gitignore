@@ -21,6 +21,9 @@ test-results/
 temp/
 temp/memory-state.json
 
+# Generated per-worktree config
+.claude/launch.json
+
 # IDE
 .idea/
 .vscode/

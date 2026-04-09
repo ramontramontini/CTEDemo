@@ -135,13 +135,13 @@ fi
 
 ## Step 3.7: Generate Launch Config
 
-Generate `.claude/launch.json` if missing (gitignored, per-worktree):
+Regenerate `.claude/launch.json` from `.env` (gitignored, per-worktree):
 
 ```bash
-[ -f .claude/launch.json ] || bash scripts/generate-launch-json.sh
+bash scripts/generate-launch-json.sh
 ```
 
-This creates the Claude Preview MCP config (`preview_start`) with correct ports from `.env`. Idempotent — skips if file already exists.
+This creates/updates the Claude Preview MCP config (`preview_start`) with correct ports from `.env`. Idempotent — always regenerates from current `.env` values to prevent port staleness.
 
 **If fails:** output `⚠️ WARNING: generate-launch-json.sh failed — preview tools need manual config — recovery: bash scripts/generate-launch-json.sh` (WARN tier). Bootstrap continues.
 
