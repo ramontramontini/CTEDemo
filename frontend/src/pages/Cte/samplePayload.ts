@@ -2,7 +2,7 @@ export const SAMPLE_PAYLOAD = {
   FreightOrder: "12345678901234",
   ERP: "SAP",
   Carrier: "16003754000135",
-  CNPJ_Origin: "16003754000135",
+  CNPJ_Origin: "03026527000183",
   Incoterms: "CIF",
   OperationType: "0",
   Folder: [
@@ -28,7 +28,7 @@ export const SAMPLE_PAYLOAD = {
           ReducedBase: 0,
         },
       ],
-      RelatedNFE: ["12345678901234567890123456789012345678901234"],
+      RelatedNFE: ["35251003026527000183550010013119001683587366"],
     },
   ],
 };

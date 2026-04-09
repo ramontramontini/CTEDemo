@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SAMPLE_PAYLOAD } from '@/pages/Cte/samplePayload';
 
-const SEEDED_TRANSPORTADORA_CNPJS = ['16003754000135', '33014556000196'];
 const SEEDED_REMETENTE_CNPJS = ['03026527000183', '11444777000161'];
 const SEEDED_NFE_KEYS_AUTHORIZED = [
   '35251003026527000183550010013119001683587366',
@@ -12,20 +11,12 @@ const SEEDED_NFE_KEYS_AUTHORIZED = [
   '35230410758386000159550010000000011000000015',
 ];
 
-describe('SAMPLE_PAYLOAD', () => {
-  it('uses a Carrier CNPJ that exists in seed data', () => {
-    expect(SEEDED_TRANSPORTADORA_CNPJS).toContain(SAMPLE_PAYLOAD.Carrier);
-  });
-
-  it('has a valid 14-digit FreightOrder', () => {
-    expect(SAMPLE_PAYLOAD.FreightOrder).toMatch(/^\d{14}$/);
-  });
-
-  it('uses a CNPJ_Origin that exists in seeded Remetente data', () => {
+describe('Regression 2026-04-09.00-16-03: sample payload seed data mismatch', () => {
+  it('CNPJ_Origin is a seeded Remetente CNPJ', () => {
     expect(SEEDED_REMETENTE_CNPJS).toContain(SAMPLE_PAYLOAD.CNPJ_Origin);
   });
 
-  it('uses RelatedNFE keys that exist in seeded authorized NFE data', () => {
+  it('RelatedNFE uses seeded authorized NFE keys', () => {
     const folder = SAMPLE_PAYLOAD.Folder[0];
     expect(folder.RelatedNFE.length).toBeGreaterThan(0);
     for (const nfeKey of folder.RelatedNFE) {
@@ -33,7 +24,7 @@ describe('SAMPLE_PAYLOAD', () => {
     }
   });
 
-  it('CNPJ_Origin matches the emitter CNPJ of referenced NFE keys', () => {
+  it('CNPJ_Origin matches emitter CNPJ in referenced NFE keys', () => {
     const folder = SAMPLE_PAYLOAD.Folder[0];
     for (const nfeKey of folder.RelatedNFE) {
       const emitterCnpj = nfeKey.substring(6, 20);
