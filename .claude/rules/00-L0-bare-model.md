@@ -47,5 +47,5 @@ L2 architecture: `.claude/rules/04-L2-architecture-guide.md`
 L3 domain: `.claude/rules/05-L3-domain.md`
 Code quality (deep-dive): `docs/architecture/code-quality.md`
 Domain rules: `docs/domain/`
-Compliance: `docs/templates/compliance-checklist.md`
+Compliance: `GET /api/v1/compliance/template?type={type}` (source: `backend/src/domain/story/compliance_registry.py`)
 Gate Keeper: `.claude/agents/gate-keeper.md`
